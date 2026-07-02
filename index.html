@@ -879,14 +879,6 @@
         </div>
 
         <form class="form-grid" id="bookingForm">
-          <div class="field">
-            <label for="dateSelect">日付</label>
-            <select class="input" id="dateSelect" name="date"></select>
-          </div>
-          <div class="field">
-            <label for="timeSelect">時間</label>
-            <select class="input" id="timeSelect" name="time"></select>
-          </div>
           <div class="field field-wide">
             <label for="memoInput">商談メモ</label>
             <textarea id="memoInput" name="memo" required placeholder="検討テーマ、次回確認事項、希望デモ内容など"></textarea>
@@ -910,14 +902,11 @@
       "2026-07-20": "海の日"
     };
 
-    const calendarDays = createCalendarDays();
-    const businessDays = calendarDays.filter((day) => day.isBusiness);
-
     purgeLegacyData();
 
     const state = {
       staff: STAFF[0],
-      date: chooseInitialDate(),
+      date: "2026-07-01",
       time: "",
       data: loadData()
     };
@@ -937,11 +926,12 @@
       lastUpdatedLabel: document.getElementById("lastUpdatedLabel"),
       statusLine: document.getElementById("statusLine"),
       form: document.getElementById("bookingForm"),
-      dateSelect: document.getElementById("dateSelect"),
-      timeSelect: document.getElementById("timeSelect"),
       memo: document.getElementById("memoInput"),
       save: document.getElementById("saveButton")
     };
+
+    const calendarDays = createCalendarDays();
+    const businessDays = calendarDays.filter((day) => day.isBusiness);
 
     renderAll();
 
@@ -955,20 +945,6 @@
       state.time = "";
       clearForm();
       renderAll();
-    });
-
-    els.dateSelect.addEventListener("change", (event) => {
-      state.date = event.target.value;
-      state.time = "";
-      clearForm();
-      renderAll();
-    });
-
-    els.timeSelect.addEventListener("change", (event) => {
-      state.time = event.target.value;
-      fillForm(null);
-      renderSlots();
-      renderForm();
     });
 
     function createCalendarDays() {
@@ -988,22 +964,6 @@
         });
       }
       return days;
-    }
-
-    function chooseInitialDate() {
-      const today = getTodayIso();
-      const todayDay = businessDays.find((day) => day.iso === today);
-      if (todayDay) return todayDay.iso;
-      const nextDay = businessDays.find((day) => day.iso > today);
-      return nextDay?.iso || businessDays[0]?.iso || "2026-07-01";
-    }
-
-    function getTodayIso() {
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, "0");
-      const day = String(today.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
     }
 
     function purgeLegacyData() {
@@ -1071,10 +1031,8 @@
 
     function renderAll() {
       renderStaff();
-      renderDateSelect();
       renderCalendar();
       renderSlots();
-      renderTimeSelect();
       renderForm();
       renderMetrics();
     }
@@ -1090,19 +1048,6 @@
       }
       els.staffSelect.value = state.staff;
       els.selectedPill.innerHTML = `<span>選択中</span><strong>${state.staff}</strong>`;
-    }
-
-    function renderDateSelect() {
-      els.dateSelect.innerHTML = "";
-      const today = getTodayIso();
-      businessDays.forEach((day) => {
-        const available = TIMES.length - countDayBookings(state.staff, day.iso);
-        const option = document.createElement("option");
-        option.value = day.iso;
-        option.textContent = `${day.label}${day.iso === today ? "（今日）" : ""} / 空き${available}`;
-        els.dateSelect.appendChild(option);
-      });
-      els.dateSelect.value = state.date;
     }
 
     function renderCalendar() {
@@ -1190,7 +1135,6 @@
           state.time = time;
           fillForm(null);
           renderSlots();
-          renderTimeSelect();
           renderForm();
         });
         els.slotGrid.appendChild(button);
@@ -1204,48 +1148,12 @@
       }
     }
 
-    function renderTimeSelect() {
-      els.timeSelect.innerHTML = "";
-      const availableTimes = TIMES.filter((time) => !bookingFor(state.staff, state.date, time));
-      if (availableTimes.length === 0) {
-        const option = document.createElement("option");
-        option.value = "";
-        option.textContent = "空き時間なし";
-        els.timeSelect.appendChild(option);
-        els.timeSelect.disabled = true;
-        return;
-      }
-
-      const placeholder = document.createElement("option");
-      placeholder.value = "";
-      placeholder.textContent = "時間を選択";
-      els.timeSelect.appendChild(placeholder);
-
-      availableTimes.forEach((time) => {
-        const option = document.createElement("option");
-        option.value = time;
-        option.textContent = time;
-        els.timeSelect.appendChild(option);
-      });
-
-      els.timeSelect.disabled = false;
-      els.timeSelect.value = state.time;
-    }
-
     function renderForm() {
       const day = businessDays.find((item) => item.iso === state.date);
-      const hasDate = Boolean(day);
       const hasSlot = Boolean(state.date && state.time);
-      const hasAvailableTime = TIMES.some((time) => !bookingFor(state.staff, state.date, time));
 
-      els.dateSelect.value = state.date;
-      if (!els.timeSelect.disabled) {
-        els.timeSelect.value = state.time;
-      }
-      els.selectionValue.textContent = hasSlot && day ? `${day.label} ${state.time}` : (hasDate ? day.label : "未選択");
-      els.selectionSub.textContent = hasSlot
-        ? `担当者: ${state.staff}`
-        : (hasAvailableTime ? "時間を選択" : "この日は空き時間なし");
+      els.selectionValue.textContent = hasSlot && day ? `${day.label} ${state.time}` : "未選択";
+      els.selectionSub.textContent = hasSlot ? `担当者: ${state.staff}` : "日付と時間を選択";
       els.save.disabled = !hasSlot;
       els.save.textContent = "予約を確定";
       els.statusLine.textContent = "";
@@ -1278,7 +1186,7 @@
     }
 
     function clearForm() {
-      els.memo.value = "";
+      els.form.reset();
       els.statusLine.textContent = "";
     }
 
