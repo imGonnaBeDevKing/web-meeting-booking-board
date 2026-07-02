@@ -432,7 +432,13 @@
       background: rgba(231, 241, 255, 0.76);
     }
 
-    .day-card.is-weekend .day-number {
+    .day-card.is-holiday {
+      border-color: rgba(180, 35, 24, 0.2);
+      background: rgba(255, 246, 235, 0.92);
+    }
+
+    .day-card.is-weekend .day-number,
+    .day-card.is-holiday .day-number {
       font-size: 17px;
     }
 
@@ -822,7 +828,8 @@
           <div class="visual-overlay">
             <div class="month-title">
               <p class="kicker">JULY 2026</p>
-              <h2>平日限定スケジュール</h2>
+              <h2>平日スケジュール</h2>
+              <p>土日・祝日を除く</p>
               <p>10:00 / 11:00 / 13:00 / 14:30 / 16:00</p>
             </div>
             <div class="selected-pill" id="selectedPill">
@@ -836,7 +843,7 @@
           <div class="calendar-head">
             <div>
               <h2>2026年7月</h2>
-              <p id="calendarCaption">平日23日、予約対象115枠。土日は表示のみ。</p>
+              <p id="calendarCaption">予約対象22日、全110枠。土日・祝日は表示のみ。</p>
             </div>
             <div class="top-status" id="dayAvailability">空き 5 / 5</div>
           </div>
@@ -891,6 +898,9 @@
     const STAFF = ["島村", "小林", "高木", "見目", "藤之原", "奥田"];
     const TIMES = ["10:00", "11:00", "13:00", "14:30", "16:00"];
     const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+    const HOLIDAYS = {
+      "2026-07-20": "海の日"
+    };
 
     purgeLegacyData();
 
@@ -942,11 +952,14 @@
       for (let day = 1; day <= 31; day += 1) {
         const date = new Date(Date.UTC(2026, 6, day));
         const dow = date.getUTCDay();
+        const iso = `2026-07-${String(day).padStart(2, "0")}`;
+        const holidayName = HOLIDAYS[iso] || "";
         days.push({
           day,
           dow,
-          isBusiness: dow >= 1 && dow <= 5,
-          iso: `2026-07-${String(day).padStart(2, "0")}`,
+          holidayName,
+          isBusiness: dow >= 1 && dow <= 5 && !holidayName,
+          iso,
           label: `7月${day}日 ${WEEKDAYS[dow]}曜日`
         });
       }
@@ -970,11 +983,29 @@
         if (!parsed.reservations || typeof parsed.reservations !== "object") {
           parsed.reservations = {};
         }
-        return parsed;
+        return sanitizeData(parsed);
       } catch (error) {
         console.warn("Failed to load reservations", error);
         return { reservations: {}, updatedAt: "" };
       }
+    }
+
+    function sanitizeData(data) {
+      Object.keys(data.reservations).forEach((staff) => {
+        Object.keys(data.reservations[staff]).forEach((date) => {
+          if (!isBookableDate(date)) {
+            delete data.reservations[staff][date];
+          }
+        });
+      });
+      return data;
+    }
+
+    function isBookableDate(date) {
+      const parts = date.split("-").map(Number);
+      if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return false;
+      const dow = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])).getUTCDay();
+      return dow >= 1 && dow <= 5 && !HOLIDAYS[date];
     }
 
     function persist() {
@@ -1035,15 +1066,18 @@
           const card = document.createElement("div");
           card.className = [
             "day-card",
-            "is-weekend",
-            day.dow === 0 ? "is-sunday" : "is-saturday"
-          ].join(" ");
+            day.holidayName ? "is-holiday" : "is-weekend",
+            day.dow === 0 ? "is-sunday" : "",
+            day.dow === 6 ? "is-saturday" : ""
+          ].filter(Boolean).join(" ");
+          const dayStatus = day.holidayName || "対象外";
+          const ariaStatus = day.holidayName ? `${day.holidayName} 休み` : "予約対象外";
           card.setAttribute("role", "gridcell");
           card.setAttribute("aria-disabled", "true");
-          card.setAttribute("aria-label", `${day.label} 予約対象外`);
+          card.setAttribute("aria-label", `${day.label} ${ariaStatus}`);
           card.innerHTML = `
             <span class="day-number">${day.day}</span>
-            <span class="day-meta"><span>${WEEKDAYS[day.dow]}</span><span>対象外</span></span>
+            <span class="day-meta"><span>${WEEKDAYS[day.dow]}</span><span>${dayStatus}</span></span>
           `;
           els.calendarGrid.appendChild(card);
           return;
