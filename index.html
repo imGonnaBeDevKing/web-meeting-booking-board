@@ -794,8 +794,8 @@
         <span>Web Meeting Booking Board</span>
       </div>
       <div class="top-status">
-        <span id="storageLabel">保存先: このブラウザ</span>
-        <span id="lastUpdatedLabel">未保存</span>
+        <span id="storageLabel">保存先: Firebase Firestore</span>
+        <span id="lastUpdatedLabel">同期準備中</span>
       </div>
     </header>
 
@@ -900,9 +900,30 @@
     </main>
   </div>
 
-  <script>
-    const LEGACY_STORAGE_KEY = "expo-web-meeting-bookings-2026-07-v1";
-    const STORAGE_KEY = "expo-web-meeting-bookings-2026-07-v2";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import {
+      collection,
+      doc,
+      getFirestore,
+      onSnapshot,
+      serverTimestamp,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCRSpT3R19osI39F42vNrtm5LatrnaINIc",
+      authDomain: "web-meeting-booking-board.firebaseapp.com",
+      projectId: "web-meeting-booking-board",
+      storageBucket: "web-meeting-booking-board.firebasestorage.app",
+      messagingSenderId: "4602918549",
+      appId: "1:4602918549:web:0d48fe0cd0eb8bd8a28d9c"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const reservationsRef = collection(db, "reservations");
+
     const STAFF = ["島村", "小林", "高木", "見目", "藤之原", "奥田"];
     const TIMES = ["10:00", "11:00", "13:00", "14:30", "16:00"];
     const MEMO_TIMES = [
@@ -914,14 +935,24 @@
     const HOLIDAYS = {
       "2026-07-20": "海の日"
     };
-
-    purgeLegacyData();
+    const FORBIDDEN_KEYS = [
+      "company",
+      "name",
+      "email",
+      "tel",
+      "phone",
+      "customerName",
+      "contact"
+    ];
 
     const state = {
       staff: STAFF[0],
       date: "2026-07-01",
       time: "",
-      data: loadData()
+      data: {
+        reservations: {},
+        updatedAt: ""
+      }
     };
 
     const els = {
@@ -948,8 +979,6 @@
     const calendarDays = createCalendarDays();
     const businessDays = calendarDays.filter((day) => day.isBusiness);
 
-    renderAll();
-
     els.form.addEventListener("submit", (event) => {
       event.preventDefault();
       saveBooking();
@@ -961,6 +990,9 @@
       clearForm();
       renderAll();
     });
+
+    renderAll();
+    subscribeReservations();
 
     function createCalendarDays() {
       const days = [];
@@ -981,67 +1013,16 @@
       return days;
     }
 
-    function purgeLegacyData() {
-      try {
-        localStorage.removeItem(LEGACY_STORAGE_KEY);
-      } catch (error) {
-        console.warn("Failed to purge legacy reservations", error);
-      }
-    }
-
-    function loadData() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return { reservations: {}, updatedAt: "" };
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== "object") throw new Error("Invalid JSON");
-        if (!parsed.reservations || typeof parsed.reservations !== "object") {
-          parsed.reservations = {};
-        }
-        return sanitizeData(parsed);
-      } catch (error) {
-        console.warn("Failed to load reservations", error);
-        return { reservations: {}, updatedAt: "" };
-      }
-    }
-
-    function sanitizeData(data) {
-      Object.keys(data.reservations).forEach((staff) => {
-        Object.keys(data.reservations[staff]).forEach((date) => {
-          if (!isBookableDate(date)) {
-            delete data.reservations[staff][date];
-          }
-        });
-      });
-      return data;
-    }
-
     function isBookableDate(date) {
+      if (!/^2026-07-(0[1-9]|[12]\d|3[01])$/.test(date)) return false;
       const parts = date.split("-").map(Number);
       if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return false;
       const dow = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])).getUTCDay();
       return dow >= 1 && dow <= 5 && !HOLIDAYS[date];
     }
 
-    function persist() {
-      state.data.updatedAt = new Date().toISOString();
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
-        return true;
-      } catch (error) {
-        console.error("Failed to save reservations", error);
-        return false;
-      }
-    }
-
     function bookingFor(staff, date, time) {
       return state.data.reservations?.[staff]?.[date]?.[time] || null;
-    }
-
-    function ensureSlot(staff, date) {
-      if (!state.data.reservations[staff]) state.data.reservations[staff] = {};
-      if (!state.data.reservations[staff][date]) state.data.reservations[staff][date] = {};
-      return state.data.reservations[staff][date];
     }
 
     function renderAll() {
@@ -1216,7 +1197,7 @@
       const allBooked = STAFF.reduce((sum, member) => sum + countStaffBookings(member), 0);
       els.staffBookedCount.textContent = String(staffBooked);
       els.allBookedCount.textContent = String(allBooked);
-      els.lastUpdatedLabel.textContent = state.data.updatedAt ? `最終更新: ${formatDateTime(state.data.updatedAt)}` : "未保存";
+      els.lastUpdatedLabel.textContent = state.data.updatedAt ? `同期: ${formatDateTime(state.data.updatedAt)}` : "同期待ち";
     }
 
     function updateDayAvailability() {
@@ -1246,7 +1227,57 @@
       els.statusLine.textContent = "";
     }
 
-    function saveBooking() {
+    function subscribeReservations() {
+      els.lastUpdatedLabel.textContent = "同期中";
+      onSnapshot(reservationsRef, (snapshot) => {
+        const reservations = {};
+        snapshot.forEach((documentSnapshot) => {
+          const reservation = documentSnapshot.data();
+          if (!isValidReservation(reservation, documentSnapshot.id)) return;
+          if (!reservations[reservation.staff]) reservations[reservation.staff] = {};
+          if (!reservations[reservation.staff][reservation.date]) {
+            reservations[reservation.staff][reservation.date] = {};
+          }
+          reservations[reservation.staff][reservation.date][reservation.time] = reservation;
+        });
+        const selectedSlotWasBooked = Boolean(
+          state.time && reservations[state.staff]?.[state.date]?.[state.time]
+        );
+
+        state.data = {
+          reservations,
+          updatedAt: new Date().toISOString()
+        };
+        if (selectedSlotWasBooked) {
+          state.time = "";
+          clearForm();
+        }
+        renderAll();
+        els.lastUpdatedLabel.textContent = `同期: ${formatDateTime(state.data.updatedAt)}`;
+        if (selectedSlotWasBooked) {
+          els.statusLine.textContent = "選択中の枠は予約済みになりました";
+        }
+      }, (error) => {
+        console.error("Firestore sync failed", error);
+        els.lastUpdatedLabel.textContent = "同期エラー";
+        els.statusLine.textContent = "予約データを同期できませんでした";
+      });
+    }
+
+    function isValidReservation(reservation, documentId) {
+      if (!reservation || typeof reservation !== "object") return false;
+      if (!STAFF.includes(reservation.staff)) return false;
+      if (!TIMES.includes(reservation.time)) return false;
+      if (!isBookableDate(reservation.date)) return false;
+      if (documentId !== reservationIdFor(reservation.staff, reservation.date, reservation.time)) return false;
+      return !FORBIDDEN_KEYS.some((key) => Object.prototype.hasOwnProperty.call(reservation, key));
+    }
+
+    function reservationIdFor(staff, date, time) {
+      return `${staff}_${date}_${time}`;
+    }
+
+    async function saveBooking() {
       if (!state.time) return;
       if (!els.form.reportValidity()) return;
       if (bookingFor(state.staff, state.date, state.time)) {
@@ -1256,12 +1287,10 @@
         return;
       }
 
-      const daySlots = ensureSlot(state.staff, state.date);
       const day = businessDays.find((item) => item.iso === state.date);
-      const now = new Date().toISOString();
       const memoDate = els.memoDate.value;
       const memoTime = els.memoTime.value;
-      daySlots[state.time] = {
+      const reservation = {
         staff: state.staff,
         date: state.date,
         time: state.time,
@@ -1270,15 +1299,25 @@
         memoTime,
         memoTimestampLabel: `${memoDate} ${memoTime}`,
         memo: els.memo.value.trim(),
-        createdAt: now,
-        updatedAt: now
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       };
+      const reservationId = reservationIdFor(state.staff, state.date, state.time);
+      const reservationRef = doc(db, "reservations", reservationId);
 
-      const saved = persist();
-      state.time = "";
-      clearForm();
-      renderAll();
-      els.statusLine.textContent = saved ? "保存しました" : "保存できませんでした";
+      els.save.disabled = true;
+      els.statusLine.textContent = "保存中...";
+      try {
+        await setDoc(reservationRef, reservation);
+        state.time = "";
+        clearForm();
+        renderAll();
+        els.statusLine.textContent = "保存しました";
+      } catch (error) {
+        console.error("Failed to create reservation", error);
+        renderAll();
+        els.statusLine.textContent = "保存できませんでした。この枠は予約済みの可能性があります";
+      }
     }
 
     function formatDateTime(iso) {
