@@ -11,7 +11,7 @@ Browser-based booking board for post-exhibition web meetings.
 - Daily slots: 10:00, 11:00, 13:00, 14:30, 16:00
 - Staff: 島村, 小林, 高木, 見目, 藤之原, 奥田
 - Storage: browser `localStorage`
-- Saved fields: selected date/time, staff, and meeting memo only
+- Saved fields: selected booking date/time, staff, memo date/time, and meeting memo only
 
 ## Notes
 
