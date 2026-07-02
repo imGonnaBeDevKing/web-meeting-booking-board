@@ -10,6 +10,8 @@ Browser-based booking board for post-exhibition web meetings.
 - Closed holiday: July 20, 2026 (Marine Day / 海の日)
 - Daily slots: 10:00, 11:00, 13:00, 14:30, 16:00
 - Staff: 島村, 小林, 高木, 見目, 藤之原, 奥田
+- Date and time can be selected from dropdowns
+- Initial date defaults to today when today is bookable
 - Storage: browser `localStorage`
 - Saved fields: selected date/time, staff, and meeting memo only
 
