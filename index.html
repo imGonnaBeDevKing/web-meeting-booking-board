@@ -175,36 +175,23 @@
       font-size: 14px;
     }
 
-    .staff-list {
+    .staff-picker {
       display: grid;
-      gap: 8px;
+      gap: 6px;
       margin-bottom: 18px;
     }
 
-    .staff-button {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      width: 100%;
-      min-height: 44px;
-      padding: 10px 12px;
-      border: 1px solid rgba(17, 24, 39, 0.08);
-      border-radius: 7px;
-      background: rgba(255, 255, 255, 0.72);
-      color: var(--text);
-      font-weight: 700;
-      text-align: left;
-      transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+    .staff-picker label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
     }
 
-    .staff-button:hover {
-      background: #ffffff;
-      border-color: rgba(0, 113, 227, 0.3);
-      transform: translateY(-1px);
+    .staff-select {
+      min-height: 48px;
+      font-weight: 800;
     }
 
-    .staff-button:focus-visible,
     .day-button:focus-visible,
     .slot-button:focus-visible,
     .primary-button:focus-visible,
@@ -214,18 +201,6 @@
     textarea:focus {
       outline: none;
       box-shadow: var(--focus);
-    }
-
-    .staff-button.is-active {
-      border-color: rgba(0, 113, 227, 0.55);
-      background: var(--blue-quiet);
-      color: #004b98;
-    }
-
-    .staff-count {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 700;
     }
 
     .metric-stack {
@@ -254,11 +229,6 @@
       color: var(--muted);
       font-size: 11px;
       font-weight: 700;
-    }
-
-    .data-actions {
-      display: grid;
-      gap: 8px;
     }
 
     .secondary-button,
@@ -393,7 +363,7 @@
     .weekday-grid,
     .calendar-grid {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(7, minmax(0, 1fr));
       gap: 8px;
     }
 
@@ -409,6 +379,7 @@
       min-height: 76px;
     }
 
+    .day-card,
     .day-button {
       display: grid;
       align-content: space-between;
@@ -420,6 +391,9 @@
       background: rgba(255, 255, 255, 0.74);
       color: var(--text);
       text-align: left;
+    }
+
+    .day-button {
       transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
     }
 
@@ -437,6 +411,29 @@
     .day-button.is-full {
       background: #f1f3f5;
       color: var(--muted);
+    }
+
+    .day-card.is-weekend {
+      min-height: 56px;
+      align-self: center;
+      padding: 8px;
+      border-style: dashed;
+      color: var(--muted);
+      opacity: 0.9;
+    }
+
+    .day-card.is-sunday {
+      border-color: rgba(180, 35, 24, 0.18);
+      background: rgba(255, 241, 240, 0.86);
+    }
+
+    .day-card.is-saturday {
+      border-color: rgba(0, 113, 227, 0.16);
+      background: rgba(231, 241, 255, 0.76);
+    }
+
+    .day-card.is-weekend .day-number {
+      font-size: 17px;
     }
 
     .day-number {
@@ -511,6 +508,21 @@
     .slot-button.is-booked {
       border-color: rgba(47, 155, 85, 0.22);
       background: var(--green-quiet);
+    }
+
+    .empty-slots {
+      display: grid;
+      place-items: center;
+      grid-column: 1 / -1;
+      min-height: 84px;
+      padding: 14px;
+      border: 1px dashed rgba(17, 24, 39, 0.14);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.62);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      text-align: center;
     }
 
     .slot-button strong {
@@ -667,10 +679,6 @@
         font-size: 34px;
       }
 
-      .staff-list {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
       .visual-overlay {
         align-items: flex-start;
         flex-direction: column;
@@ -691,9 +699,14 @@
         gap: 6px;
       }
 
+      .day-card,
       .day-button,
       .day-blank {
         min-height: 68px;
+      }
+
+      .day-card.is-weekend {
+        min-height: 50px;
       }
 
       .day-button {
@@ -710,14 +723,13 @@
     }
 
     @media (max-width: 520px) {
-      .staff-list,
       .metric-stack {
         grid-template-columns: 1fr;
       }
 
       .weekday-grid,
       .calendar-grid {
-        grid-template-columns: repeat(5, minmax(44px, 1fr));
+        grid-template-columns: repeat(7, minmax(42px, 1fr));
       }
 
       .calendar-grid-wrap {
@@ -727,7 +739,7 @@
 
       .weekday-grid,
       .calendar-grid {
-        min-width: 470px;
+        min-width: 560px;
       }
 
       .calendar-head,
@@ -748,7 +760,6 @@
 
       .topbar,
       .visual-band,
-      .data-actions,
       .detail-panel {
         display: none;
       }
@@ -786,10 +797,12 @@
       <aside class="panel staff-panel" aria-label="担当者選択">
         <p class="kicker">EXPO MEETING</p>
         <h1>商談後の<br>次回予約</h1>
-        <p class="lead">2026年7月の平日、5つの時間枠から担当者別に確定します。</p>
+        <p class="lead">2026年7月のカレンダーを見ながら、担当者ごとの空き時間をその場で確認できます。</p>
 
-        <h2>担当者</h2>
-        <div class="staff-list" id="staffList" role="radiogroup" aria-label="担当者"></div>
+        <div class="staff-picker">
+          <label for="staffSelect">担当者</label>
+          <select class="input staff-select" id="staffSelect" name="staff"></select>
+        </div>
 
         <div class="metric-stack" aria-label="予約状況">
           <div class="metric">
@@ -800,15 +813,6 @@
             <strong id="allBookedCount">0</strong>
             <span>全体の予約</span>
           </div>
-        </div>
-
-        <div class="data-actions">
-          <button class="secondary-button" id="exportCsvButton" type="button">CSV出力</button>
-          <button class="secondary-button" id="exportJsonButton" type="button">JSON出力</button>
-          <button class="secondary-button" id="importJsonButton" type="button">JSON読込</button>
-          <button class="secondary-button" id="printButton" type="button">印刷</button>
-          <button class="danger-button" id="resetButton" type="button">全削除</button>
-          <input class="hidden" id="importFile" type="file" accept="application/json,.json">
         </div>
       </aside>
 
@@ -832,20 +836,22 @@
           <div class="calendar-head">
             <div>
               <h2>2026年7月</h2>
-              <p id="calendarCaption">平日23日、全115枠</p>
+              <p id="calendarCaption">平日23日、予約対象115枠。土日は表示のみ。</p>
             </div>
             <div class="top-status" id="dayAvailability">空き 5 / 5</div>
           </div>
 
           <div class="calendar-grid-wrap">
             <div class="weekday-grid" aria-hidden="true">
+              <span>日</span>
               <span>月</span>
               <span>火</span>
               <span>水</span>
               <span>木</span>
               <span>金</span>
+              <span>土</span>
             </div>
-            <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="2026年7月の平日"></div>
+            <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="2026年7月のカレンダー"></div>
           </div>
 
           <div class="slots-panel">
@@ -888,7 +894,6 @@
           </div>
           <div class="form-actions">
             <button class="primary-button" id="saveButton" type="submit" disabled>予約を確定</button>
-            <button class="danger-button" id="deleteButton" type="button" disabled>この予約を解除</button>
           </div>
           <div class="status-line" id="statusLine" aria-live="polite"></div>
         </form>
@@ -910,7 +915,7 @@
     };
 
     const els = {
-      staffList: document.getElementById("staffList"),
+      staffSelect: document.getElementById("staffSelect"),
       calendarGrid: document.getElementById("calendarGrid"),
       slotGrid: document.getElementById("slotGrid"),
       selectedPill: document.getElementById("selectedPill"),
@@ -929,17 +934,11 @@
       email: document.getElementById("emailInput"),
       tel: document.getElementById("telInput"),
       memo: document.getElementById("memoInput"),
-      save: document.getElementById("saveButton"),
-      delete: document.getElementById("deleteButton"),
-      exportCsv: document.getElementById("exportCsvButton"),
-      exportJson: document.getElementById("exportJsonButton"),
-      importJson: document.getElementById("importJsonButton"),
-      importFile: document.getElementById("importFile"),
-      print: document.getElementById("printButton"),
-      reset: document.getElementById("resetButton")
+      save: document.getElementById("saveButton")
     };
 
-    const businessDays = createBusinessDays();
+    const calendarDays = createCalendarDays();
+    const businessDays = calendarDays.filter((day) => day.isBusiness);
 
     renderAll();
 
@@ -948,30 +947,25 @@
       saveBooking();
     });
 
-    els.delete.addEventListener("click", () => {
-      deleteBooking();
+    els.staffSelect.addEventListener("change", (event) => {
+      state.staff = event.target.value;
+      state.time = "";
+      clearForm();
+      renderAll();
     });
 
-    els.exportCsv.addEventListener("click", exportCsv);
-    els.exportJson.addEventListener("click", exportJson);
-    els.importJson.addEventListener("click", () => els.importFile.click());
-    els.importFile.addEventListener("change", importJson);
-    els.print.addEventListener("click", () => window.print());
-    els.reset.addEventListener("click", resetAll);
-
-    function createBusinessDays() {
+    function createCalendarDays() {
       const days = [];
       for (let day = 1; day <= 31; day += 1) {
         const date = new Date(Date.UTC(2026, 6, day));
         const dow = date.getUTCDay();
-        if (dow >= 1 && dow <= 5) {
-          days.push({
-            day,
-            dow,
-            iso: `2026-07-${String(day).padStart(2, "0")}`,
-            label: `7月${day}日 ${WEEKDAYS[dow]}曜日`
-          });
-        }
+        days.push({
+          day,
+          dow,
+          isBusiness: dow >= 1 && dow <= 5,
+          iso: `2026-07-${String(day).padStart(2, "0")}`,
+          label: `7月${day}日 ${WEEKDAYS[dow]}曜日`
+        });
       }
       return days;
     }
@@ -1022,29 +1016,21 @@
     }
 
     function renderStaff() {
-      els.staffList.innerHTML = "";
-      STAFF.forEach((member) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = `staff-button${member === state.staff ? " is-active" : ""}`;
-        button.setAttribute("role", "radio");
-        button.setAttribute("aria-checked", String(member === state.staff));
-        button.innerHTML = `<span>${member}</span><span class="staff-count">${countStaffBookings(member)}件</span>`;
-        button.addEventListener("click", () => {
-          state.staff = member;
-          state.time = "";
-          clearForm();
-          renderAll();
+      if (els.staffSelect.options.length === 0) {
+        STAFF.forEach((member) => {
+          const option = document.createElement("option");
+          option.value = member;
+          option.textContent = member;
+          els.staffSelect.appendChild(option);
         });
-        els.staffList.appendChild(button);
-      });
-
+      }
+      els.staffSelect.value = state.staff;
       els.selectedPill.innerHTML = `<span>選択中</span><strong>${state.staff}</strong>`;
     }
 
     function renderCalendar() {
       els.calendarGrid.innerHTML = "";
-      const firstOffset = (new Date(Date.UTC(2026, 6, 1)).getUTCDay() + 6) % 7;
+      const firstOffset = new Date(Date.UTC(2026, 6, 1)).getUTCDay();
 
       for (let i = 0; i < firstOffset; i += 1) {
         const blank = document.createElement("div");
@@ -1053,7 +1039,25 @@
         els.calendarGrid.appendChild(blank);
       }
 
-      businessDays.forEach((day) => {
+      calendarDays.forEach((day) => {
+        if (!day.isBusiness) {
+          const card = document.createElement("div");
+          card.className = [
+            "day-card",
+            "is-weekend",
+            day.dow === 0 ? "is-sunday" : "is-saturday"
+          ].join(" ");
+          card.setAttribute("role", "gridcell");
+          card.setAttribute("aria-disabled", "true");
+          card.setAttribute("aria-label", `${day.label} 予約対象外`);
+          card.innerHTML = `
+            <span class="day-number">${day.day}</span>
+            <span class="day-meta"><span>${WEEKDAYS[day.dow]}</span><span>対象外</span></span>
+          `;
+          els.calendarGrid.appendChild(card);
+          return;
+        }
+
         const booked = countDayBookings(state.staff, day.iso);
         const available = TIMES.length - booked;
         const button = document.createElement("button");
@@ -1090,39 +1094,44 @@
 
       TIMES.forEach((time) => {
         const booking = bookingFor(state.staff, state.date, time);
+        if (booking) return;
         const button = document.createElement("button");
         button.type = "button";
         button.className = [
           "slot-button",
-          time === state.time ? "is-selected" : "",
-          booking ? "is-booked" : ""
+          time === state.time ? "is-selected" : ""
         ].filter(Boolean).join(" ");
-        button.setAttribute("aria-label", `${time} ${booking ? "予約済み" : "空き"}`);
+        button.setAttribute("aria-label", `${time} 空き`);
         button.innerHTML = `
           <strong>${time}</strong>
-          <span>${booking ? booking.company || booking.name || "予約済み" : "空き"}</span>
+          <span>空き</span>
         `;
         button.addEventListener("click", () => {
           state.time = time;
-          fillForm(booking);
+          fillForm(null);
           renderSlots();
           renderForm();
         });
         els.slotGrid.appendChild(button);
       });
+
+      if (els.slotGrid.children.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty-slots";
+        empty.textContent = "この日の空き時間はありません";
+        els.slotGrid.appendChild(empty);
+      }
     }
 
     function renderForm() {
       const day = businessDays.find((item) => item.iso === state.date);
       const hasSlot = Boolean(state.date && state.time);
-      const booking = hasSlot ? bookingFor(state.staff, state.date, state.time) : null;
 
       els.selectionValue.textContent = hasSlot ? `${state.time}` : "未選択";
       els.selectionSub.textContent = hasSlot && day ? `${state.staff} / ${day.label}` : "日付と時間を選択";
       els.save.disabled = !hasSlot;
-      els.delete.disabled = !booking;
-      els.save.textContent = booking ? "予約を更新" : "予約を確定";
-      els.statusLine.textContent = booking?.updatedAt ? `更新 ${formatDateTime(booking.updatedAt)}` : "";
+      els.save.textContent = "予約を確定";
+      els.statusLine.textContent = "";
     }
 
     function renderMetrics() {
@@ -1163,8 +1172,13 @@
     function saveBooking() {
       if (!state.time) return;
       if (!els.form.reportValidity()) return;
+      if (bookingFor(state.staff, state.date, state.time)) {
+        els.statusLine.textContent = "この時間は予約済みです";
+        state.time = "";
+        renderAll();
+        return;
+      }
 
-      const existing = bookingFor(state.staff, state.date, state.time);
       const daySlots = ensureSlot(state.staff, state.date);
       const now = new Date().toISOString();
       daySlots[state.time] = {
@@ -1173,119 +1187,15 @@
         email: els.email.value.trim(),
         tel: els.tel.value.trim(),
         memo: els.memo.value.trim(),
-        createdAt: existing?.createdAt || now,
+        createdAt: now,
         updatedAt: now
       };
 
       const saved = persist();
-      renderAll();
-      els.statusLine.textContent = saved ? "保存しました" : "保存できませんでした";
-    }
-
-    function deleteBooking() {
-      if (!state.time) return;
-      const booking = bookingFor(state.staff, state.date, state.time);
-      if (!booking) return;
-      const ok = window.confirm(`${state.staff} / ${state.date} ${state.time} の予約を解除しますか？`);
-      if (!ok) return;
-      delete state.data.reservations[state.staff][state.date][state.time];
-      if (Object.keys(state.data.reservations[state.staff][state.date]).length === 0) {
-        delete state.data.reservations[state.staff][state.date];
-      }
-      const saved = persist();
-      clearForm();
-      renderAll();
-      els.statusLine.textContent = saved ? "解除しました" : "保存できませんでした";
-    }
-
-    function resetAll() {
-      const ok = window.confirm("このブラウザに保存された予約をすべて削除しますか？");
-      if (!ok) return;
-      state.data = { reservations: {}, updatedAt: new Date().toISOString() };
-      const saved = persist();
       state.time = "";
       clearForm();
       renderAll();
-      els.statusLine.textContent = saved ? "全削除しました" : "保存できませんでした";
-    }
-
-    function exportJson() {
-      const payload = JSON.stringify(state.data, null, 2);
-      downloadBlob(payload, "web-meeting-bookings-2026-07.json", "application/json");
-    }
-
-    function exportCsv() {
-      const rows = [["担当者", "日付", "曜日", "時間", "会社名", "お名前", "メール", "電話", "メモ", "作成日時", "更新日時"]];
-      STAFF.forEach((member) => {
-        businessDays.forEach((day) => {
-          TIMES.forEach((time) => {
-            const booking = bookingFor(member, day.iso, time);
-            if (!booking) return;
-            rows.push([
-              member,
-              day.iso,
-              WEEKDAYS[day.dow],
-              time,
-              booking.company || "",
-              booking.name || "",
-              booking.email || "",
-              booking.tel || "",
-              booking.memo || "",
-              booking.createdAt || "",
-              booking.updatedAt || ""
-            ]);
-          });
-        });
-      });
-
-      const csv = rows.map((row) => row.map(escapeCsv).join(",")).join("\n");
-      downloadBlob(`\uFEFF${csv}`, "web-meeting-bookings-2026-07.csv", "text/csv;charset=utf-8");
-    }
-
-    function importJson(event) {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const parsed = JSON.parse(String(reader.result || "{}"));
-          if (!parsed.reservations || typeof parsed.reservations !== "object") {
-            throw new Error("Invalid reservation file");
-          }
-          const ok = window.confirm("JSONの予約データを読み込み、現在の保存内容を置き換えますか？");
-          if (!ok) return;
-          state.data = parsed;
-          state.data.updatedAt = new Date().toISOString();
-          const saved = persist();
-          state.time = "";
-          clearForm();
-          renderAll();
-          els.statusLine.textContent = saved ? "読み込みました" : "保存できませんでした";
-        } catch (error) {
-          window.alert("JSONを読み込めませんでした。");
-          console.error(error);
-        } finally {
-          els.importFile.value = "";
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    function escapeCsv(value) {
-      const text = String(value ?? "");
-      return `"${text.replaceAll('"', '""')}"`;
-    }
-
-    function downloadBlob(content, filename, type) {
-      const blob = new Blob([content], { type });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      els.statusLine.textContent = saved ? "保存しました" : "保存できませんでした";
     }
 
     function formatDateTime(iso) {
