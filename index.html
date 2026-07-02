@@ -864,33 +864,17 @@
         </div>
       </section>
 
-      <aside class="panel detail-panel" aria-label="予約詳細">
+      <aside class="panel detail-panel" aria-label="対応日時と商談メモ">
         <div class="selection-summary">
-          <div class="label">選択中の枠</div>
+          <div class="label">対応日時</div>
           <div class="value" id="selectionValue">未選択</div>
           <div class="sub" id="selectionSub">日付と時間を選択</div>
         </div>
 
         <form class="form-grid" id="bookingForm">
-          <div class="field">
-            <label for="companyInput">会社名</label>
-            <input class="input" id="companyInput" name="company" autocomplete="organization" required placeholder="株式会社サンプル">
-          </div>
-          <div class="field">
-            <label for="nameInput">お名前</label>
-            <input class="input" id="nameInput" name="name" autocomplete="name" required placeholder="山田 太郎">
-          </div>
-          <div class="field">
-            <label for="emailInput">メール</label>
-            <input class="input" id="emailInput" name="email" type="email" autocomplete="email" placeholder="name@example.com">
-          </div>
-          <div class="field">
-            <label for="telInput">電話</label>
-            <input class="input" id="telInput" name="tel" type="tel" autocomplete="tel" placeholder="03-0000-0000">
-          </div>
           <div class="field field-wide">
-            <label for="memoInput">メモ</label>
-            <textarea id="memoInput" name="memo" placeholder="商談内容、参加人数、希望テーマなど"></textarea>
+            <label for="memoInput">商談メモ</label>
+            <textarea id="memoInput" name="memo" required placeholder="検討テーマ、次回確認事項、希望デモ内容など"></textarea>
           </div>
           <div class="form-actions">
             <button class="primary-button" id="saveButton" type="submit" disabled>予約を確定</button>
@@ -902,10 +886,13 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "expo-web-meeting-bookings-2026-07-v1";
+    const LEGACY_STORAGE_KEY = "expo-web-meeting-bookings-2026-07-v1";
+    const STORAGE_KEY = "expo-web-meeting-bookings-2026-07-v2";
     const STAFF = ["島村", "小林", "高木", "見目", "藤之原", "奥田"];
     const TIMES = ["10:00", "11:00", "13:00", "14:30", "16:00"];
     const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+
+    purgeLegacyData();
 
     const state = {
       staff: STAFF[0],
@@ -929,10 +916,6 @@
       lastUpdatedLabel: document.getElementById("lastUpdatedLabel"),
       statusLine: document.getElementById("statusLine"),
       form: document.getElementById("bookingForm"),
-      company: document.getElementById("companyInput"),
-      name: document.getElementById("nameInput"),
-      email: document.getElementById("emailInput"),
-      tel: document.getElementById("telInput"),
       memo: document.getElementById("memoInput"),
       save: document.getElementById("saveButton")
     };
@@ -968,6 +951,14 @@
         });
       }
       return days;
+    }
+
+    function purgeLegacyData() {
+      try {
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+      } catch (error) {
+        console.warn("Failed to purge legacy reservations", error);
+      }
     }
 
     function loadData() {
@@ -1127,8 +1118,8 @@
       const day = businessDays.find((item) => item.iso === state.date);
       const hasSlot = Boolean(state.date && state.time);
 
-      els.selectionValue.textContent = hasSlot ? `${state.time}` : "未選択";
-      els.selectionSub.textContent = hasSlot && day ? `${state.staff} / ${day.label}` : "日付と時間を選択";
+      els.selectionValue.textContent = hasSlot && day ? `${day.label} ${state.time}` : "未選択";
+      els.selectionSub.textContent = hasSlot ? `担当者: ${state.staff}` : "日付と時間を選択";
       els.save.disabled = !hasSlot;
       els.save.textContent = "予約を確定";
       els.statusLine.textContent = "";
@@ -1157,10 +1148,6 @@
     }
 
     function fillForm(booking) {
-      els.company.value = booking?.company || "";
-      els.name.value = booking?.name || "";
-      els.email.value = booking?.email || "";
-      els.tel.value = booking?.tel || "";
       els.memo.value = booking?.memo || "";
     }
 
@@ -1180,12 +1167,13 @@
       }
 
       const daySlots = ensureSlot(state.staff, state.date);
+      const day = businessDays.find((item) => item.iso === state.date);
       const now = new Date().toISOString();
       daySlots[state.time] = {
-        company: els.company.value.trim(),
-        name: els.name.value.trim(),
-        email: els.email.value.trim(),
-        tel: els.tel.value.trim(),
+        staff: state.staff,
+        date: state.date,
+        time: state.time,
+        datetimeLabel: day ? `${day.label} ${state.time}` : `${state.date} ${state.time}`,
         memo: els.memo.value.trim(),
         createdAt: now,
         updatedAt: now
