@@ -1,0 +1,1305 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Web Meeting Booking Board | July 2026</title>
+  <meta name="description" content="Browser-based booking board for post-exhibition web meetings.">
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f5f5f7;
+      --surface: rgba(255, 255, 255, 0.84);
+      --surface-solid: #ffffff;
+      --line: rgba(17, 24, 39, 0.1);
+      --text: #1d1d1f;
+      --muted: #6e6e73;
+      --soft: #f2f2f4;
+      --blue: #0071e3;
+      --blue-quiet: #e7f1ff;
+      --green: #2f9b55;
+      --green-quiet: #e7f7ed;
+      --red: #b42318;
+      --red-quiet: #fff1f0;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.08);
+      --radius: 8px;
+      --focus: 0 0 0 4px rgba(0, 113, 227, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 8% 8%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 30%),
+        linear-gradient(135deg, #f8f8fa 0%, #eef2f6 48%, #f6f2ec 100%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+      line-height: 1.5;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.52;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+    }
+
+    .page {
+      width: min(1480px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 18px 0 32px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      min-height: 48px;
+      margin-bottom: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.35)),
+        linear-gradient(135deg, #0a84ff, #30d158);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.52), 0 8px 24px rgba(10, 132, 255, 0.22);
+    }
+
+    .top-status {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 260px minmax(520px, 1fr) 380px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      backdrop-filter: saturate(180%) blur(18px);
+      -webkit-backdrop-filter: saturate(180%) blur(18px);
+    }
+
+    .staff-panel,
+    .detail-panel {
+      position: sticky;
+      top: 18px;
+    }
+
+    .staff-panel {
+      padding: 18px;
+    }
+
+    .kicker {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 12px;
+      font-size: clamp(32px, 4vw, 52px);
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin-bottom: 14px;
+      font-size: 20px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin-bottom: 10px;
+      font-size: 14px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin-bottom: 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .staff-list {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .staff-button {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+    }
+
+    .staff-button:hover {
+      background: #ffffff;
+      border-color: rgba(0, 113, 227, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .staff-button:focus-visible,
+    .day-button:focus-visible,
+    .slot-button:focus-visible,
+    .primary-button:focus-visible,
+    .secondary-button:focus-visible,
+    .danger-button:focus-visible,
+    .input:focus,
+    textarea:focus {
+      outline: none;
+      box-shadow: var(--focus);
+    }
+
+    .staff-button.is-active {
+      border-color: rgba(0, 113, 227, 0.55);
+      background: var(--blue-quiet);
+      color: #004b98;
+    }
+
+    .staff-count {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .metric-stack {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      min-height: 68px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.56);
+    }
+
+    .metric strong {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .data-actions {
+      display: grid;
+      gap: 8px;
+    }
+
+    .secondary-button,
+    .danger-button,
+    .primary-button {
+      min-height: 42px;
+      padding: 10px 12px;
+      border-radius: 7px;
+      font-weight: 800;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .secondary-button {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.68);
+      color: var(--text);
+    }
+
+    .secondary-button:hover {
+      background: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .danger-button {
+      border: 1px solid rgba(180, 35, 24, 0.18);
+      background: var(--red-quiet);
+      color: var(--red);
+    }
+
+    .danger-button:hover {
+      border-color: rgba(180, 35, 24, 0.32);
+      transform: translateY(-1px);
+    }
+
+    .primary-button {
+      background: #1d1d1f;
+      color: #ffffff;
+    }
+
+    .primary-button:hover {
+      background: #000000;
+      transform: translateY(-1px);
+    }
+
+    .calendar-panel {
+      overflow: hidden;
+    }
+
+    .visual-band {
+      position: relative;
+      min-height: 220px;
+      background: #e8edf2;
+      overflow: hidden;
+    }
+
+    .visual-band img {
+      width: 100%;
+      height: 100%;
+      min-height: 220px;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    .visual-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 20px;
+      background: linear-gradient(180deg, rgba(245, 245, 247, 0.08), rgba(245, 245, 247, 0.88));
+    }
+
+    .month-title {
+      max-width: 420px;
+    }
+
+    .month-title h2 {
+      margin-bottom: 4px;
+      font-size: clamp(26px, 3vw, 40px);
+      letter-spacing: 0;
+    }
+
+    .month-title p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .selected-pill {
+      min-width: 170px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-align: right;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .selected-pill strong {
+      display: block;
+      color: var(--text);
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .calendar-body {
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .calendar-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .calendar-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .weekday-grid,
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .weekday-grid {
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .day-blank {
+      min-height: 76px;
+    }
+
+    .day-button {
+      display: grid;
+      align-content: space-between;
+      gap: 8px;
+      min-height: 76px;
+      padding: 10px;
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.74);
+      color: var(--text);
+      text-align: left;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .day-button:hover {
+      background: #ffffff;
+      border-color: rgba(0, 113, 227, 0.28);
+      transform: translateY(-1px);
+    }
+
+    .day-button.is-selected {
+      border-color: rgba(0, 113, 227, 0.62);
+      background: var(--blue-quiet);
+    }
+
+    .day-button.is-full {
+      background: #f1f3f5;
+      color: var(--muted);
+    }
+
+    .day-number {
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .day-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .slots-panel {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .slots-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .slots-head h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .slots-head span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-align: right;
+    }
+
+    .slot-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .slot-button {
+      min-height: 84px;
+      padding: 12px 10px;
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--text);
+      text-align: left;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .slot-button:hover {
+      background: #ffffff;
+      border-color: rgba(0, 113, 227, 0.28);
+      transform: translateY(-1px);
+    }
+
+    .slot-button.is-selected {
+      border-color: rgba(0, 113, 227, 0.62);
+      background: var(--blue-quiet);
+    }
+
+    .slot-button.is-booked {
+      border-color: rgba(47, 155, 85, 0.22);
+      background: var(--green-quiet);
+    }
+
+    .slot-button strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 19px;
+      line-height: 1;
+    }
+
+    .slot-button span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .detail-panel {
+      padding: 18px;
+    }
+
+    .selection-summary {
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .selection-summary .label {
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .selection-summary .value {
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .selection-summary .sub {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .input,
+    textarea {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 11px;
+      border: 1px solid rgba(17, 24, 39, 0.12);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--text);
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    textarea {
+      min-height: 86px;
+      resize: vertical;
+    }
+
+    .input::placeholder,
+    textarea::placeholder {
+      color: #a1a1a6;
+    }
+
+    .form-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .status-line {
+      min-height: 18px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1180px) {
+      .workspace {
+        grid-template-columns: 240px minmax(0, 1fr);
+      }
+
+      .detail-panel {
+        position: static;
+        grid-column: 1 / -1;
+      }
+
+      .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .form-grid .field-wide,
+      .form-actions,
+      .status-line {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .page {
+        width: min(100% - 20px, 680px);
+        padding-top: 10px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .top-status {
+        justify-content: flex-start;
+        text-align: left;
+      }
+
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .staff-panel {
+        position: static;
+      }
+
+      h1 {
+        font-size: 34px;
+      }
+
+      .staff-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .visual-overlay {
+        align-items: flex-start;
+        flex-direction: column;
+        justify-content: flex-end;
+      }
+
+      .selected-pill {
+        width: 100%;
+        text-align: left;
+      }
+
+      .calendar-body {
+        padding: 12px;
+      }
+
+      .weekday-grid,
+      .calendar-grid {
+        gap: 6px;
+      }
+
+      .day-button,
+      .day-blank {
+        min-height: 68px;
+      }
+
+      .day-button {
+        padding: 8px;
+      }
+
+      .slot-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .staff-list,
+      .metric-stack {
+        grid-template-columns: 1fr;
+      }
+
+      .weekday-grid,
+      .calendar-grid {
+        grid-template-columns: repeat(5, minmax(44px, 1fr));
+      }
+
+      .calendar-grid-wrap {
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+
+      .weekday-grid,
+      .calendar-grid {
+        min-width: 470px;
+      }
+
+      .calendar-head,
+      .slots-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .slot-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+      }
+
+      .topbar,
+      .visual-band,
+      .data-actions,
+      .detail-panel {
+        display: none;
+      }
+
+      .page {
+        width: 100%;
+        padding: 0;
+      }
+
+      .workspace {
+        display: block;
+      }
+
+      .panel {
+        border: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand" aria-label="Web Meeting Booking Board">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>Web Meeting Booking Board</span>
+      </div>
+      <div class="top-status">
+        <span id="storageLabel">保存先: このブラウザ</span>
+        <span id="lastUpdatedLabel">未保存</span>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="panel staff-panel" aria-label="担当者選択">
+        <p class="kicker">EXPO MEETING</p>
+        <h1>商談後の<br>次回予約</h1>
+        <p class="lead">2026年7月の平日、5つの時間枠から担当者別に確定します。</p>
+
+        <h2>担当者</h2>
+        <div class="staff-list" id="staffList" role="radiogroup" aria-label="担当者"></div>
+
+        <div class="metric-stack" aria-label="予約状況">
+          <div class="metric">
+            <strong id="staffBookedCount">0</strong>
+            <span>担当者の予約</span>
+          </div>
+          <div class="metric">
+            <strong id="allBookedCount">0</strong>
+            <span>全体の予約</span>
+          </div>
+        </div>
+
+        <div class="data-actions">
+          <button class="secondary-button" id="exportCsvButton" type="button">CSV出力</button>
+          <button class="secondary-button" id="exportJsonButton" type="button">JSON出力</button>
+          <button class="secondary-button" id="importJsonButton" type="button">JSON読込</button>
+          <button class="secondary-button" id="printButton" type="button">印刷</button>
+          <button class="danger-button" id="resetButton" type="button">全削除</button>
+          <input class="hidden" id="importFile" type="file" accept="application/json,.json">
+        </div>
+      </aside>
+
+      <section class="panel calendar-panel" aria-label="予約カレンダー">
+        <div class="visual-band">
+          <img src="assets/consultation-hero.png" alt="展示会相談カウンターでタブレットの予約画面を表示しているイメージ">
+          <div class="visual-overlay">
+            <div class="month-title">
+              <p class="kicker">JULY 2026</p>
+              <h2>平日限定スケジュール</h2>
+              <p>10:00 / 11:00 / 13:00 / 14:30 / 16:00</p>
+            </div>
+            <div class="selected-pill" id="selectedPill">
+              <span>選択中</span>
+              <strong>島村</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="calendar-body">
+          <div class="calendar-head">
+            <div>
+              <h2>2026年7月</h2>
+              <p id="calendarCaption">平日23日、全115枠</p>
+            </div>
+            <div class="top-status" id="dayAvailability">空き 5 / 5</div>
+          </div>
+
+          <div class="calendar-grid-wrap">
+            <div class="weekday-grid" aria-hidden="true">
+              <span>月</span>
+              <span>火</span>
+              <span>水</span>
+              <span>木</span>
+              <span>金</span>
+            </div>
+            <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="2026年7月の平日"></div>
+          </div>
+
+          <div class="slots-panel">
+            <div class="slots-head">
+              <h3 id="slotsTitle">7月1日 水曜日</h3>
+              <span id="slotsStatus">島村 / 空き 5</span>
+            </div>
+            <div class="slot-grid" id="slotGrid" aria-label="予約時間"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel detail-panel" aria-label="予約詳細">
+        <div class="selection-summary">
+          <div class="label">選択中の枠</div>
+          <div class="value" id="selectionValue">未選択</div>
+          <div class="sub" id="selectionSub">日付と時間を選択</div>
+        </div>
+
+        <form class="form-grid" id="bookingForm">
+          <div class="field">
+            <label for="companyInput">会社名</label>
+            <input class="input" id="companyInput" name="company" autocomplete="organization" required placeholder="株式会社サンプル">
+          </div>
+          <div class="field">
+            <label for="nameInput">お名前</label>
+            <input class="input" id="nameInput" name="name" autocomplete="name" required placeholder="山田 太郎">
+          </div>
+          <div class="field">
+            <label for="emailInput">メール</label>
+            <input class="input" id="emailInput" name="email" type="email" autocomplete="email" placeholder="name@example.com">
+          </div>
+          <div class="field">
+            <label for="telInput">電話</label>
+            <input class="input" id="telInput" name="tel" type="tel" autocomplete="tel" placeholder="03-0000-0000">
+          </div>
+          <div class="field field-wide">
+            <label for="memoInput">メモ</label>
+            <textarea id="memoInput" name="memo" placeholder="商談内容、参加人数、希望テーマなど"></textarea>
+          </div>
+          <div class="form-actions">
+            <button class="primary-button" id="saveButton" type="submit" disabled>予約を確定</button>
+            <button class="danger-button" id="deleteButton" type="button" disabled>この予約を解除</button>
+          </div>
+          <div class="status-line" id="statusLine" aria-live="polite"></div>
+        </form>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "expo-web-meeting-bookings-2026-07-v1";
+    const STAFF = ["島村", "小林", "高木", "見目", "藤之原", "奥田"];
+    const TIMES = ["10:00", "11:00", "13:00", "14:30", "16:00"];
+    const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+
+    const state = {
+      staff: STAFF[0],
+      date: "2026-07-01",
+      time: "",
+      data: loadData()
+    };
+
+    const els = {
+      staffList: document.getElementById("staffList"),
+      calendarGrid: document.getElementById("calendarGrid"),
+      slotGrid: document.getElementById("slotGrid"),
+      selectedPill: document.getElementById("selectedPill"),
+      dayAvailability: document.getElementById("dayAvailability"),
+      slotsTitle: document.getElementById("slotsTitle"),
+      slotsStatus: document.getElementById("slotsStatus"),
+      selectionValue: document.getElementById("selectionValue"),
+      selectionSub: document.getElementById("selectionSub"),
+      staffBookedCount: document.getElementById("staffBookedCount"),
+      allBookedCount: document.getElementById("allBookedCount"),
+      lastUpdatedLabel: document.getElementById("lastUpdatedLabel"),
+      statusLine: document.getElementById("statusLine"),
+      form: document.getElementById("bookingForm"),
+      company: document.getElementById("companyInput"),
+      name: document.getElementById("nameInput"),
+      email: document.getElementById("emailInput"),
+      tel: document.getElementById("telInput"),
+      memo: document.getElementById("memoInput"),
+      save: document.getElementById("saveButton"),
+      delete: document.getElementById("deleteButton"),
+      exportCsv: document.getElementById("exportCsvButton"),
+      exportJson: document.getElementById("exportJsonButton"),
+      importJson: document.getElementById("importJsonButton"),
+      importFile: document.getElementById("importFile"),
+      print: document.getElementById("printButton"),
+      reset: document.getElementById("resetButton")
+    };
+
+    const businessDays = createBusinessDays();
+
+    renderAll();
+
+    els.form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      saveBooking();
+    });
+
+    els.delete.addEventListener("click", () => {
+      deleteBooking();
+    });
+
+    els.exportCsv.addEventListener("click", exportCsv);
+    els.exportJson.addEventListener("click", exportJson);
+    els.importJson.addEventListener("click", () => els.importFile.click());
+    els.importFile.addEventListener("change", importJson);
+    els.print.addEventListener("click", () => window.print());
+    els.reset.addEventListener("click", resetAll);
+
+    function createBusinessDays() {
+      const days = [];
+      for (let day = 1; day <= 31; day += 1) {
+        const date = new Date(Date.UTC(2026, 6, day));
+        const dow = date.getUTCDay();
+        if (dow >= 1 && dow <= 5) {
+          days.push({
+            day,
+            dow,
+            iso: `2026-07-${String(day).padStart(2, "0")}`,
+            label: `7月${day}日 ${WEEKDAYS[dow]}曜日`
+          });
+        }
+      }
+      return days;
+    }
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return { reservations: {}, updatedAt: "" };
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") throw new Error("Invalid JSON");
+        if (!parsed.reservations || typeof parsed.reservations !== "object") {
+          parsed.reservations = {};
+        }
+        return parsed;
+      } catch (error) {
+        console.warn("Failed to load reservations", error);
+        return { reservations: {}, updatedAt: "" };
+      }
+    }
+
+    function persist() {
+      state.data.updatedAt = new Date().toISOString();
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+        return true;
+      } catch (error) {
+        console.error("Failed to save reservations", error);
+        return false;
+      }
+    }
+
+    function bookingFor(staff, date, time) {
+      return state.data.reservations?.[staff]?.[date]?.[time] || null;
+    }
+
+    function ensureSlot(staff, date) {
+      if (!state.data.reservations[staff]) state.data.reservations[staff] = {};
+      if (!state.data.reservations[staff][date]) state.data.reservations[staff][date] = {};
+      return state.data.reservations[staff][date];
+    }
+
+    function renderAll() {
+      renderStaff();
+      renderCalendar();
+      renderSlots();
+      renderForm();
+      renderMetrics();
+    }
+
+    function renderStaff() {
+      els.staffList.innerHTML = "";
+      STAFF.forEach((member) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `staff-button${member === state.staff ? " is-active" : ""}`;
+        button.setAttribute("role", "radio");
+        button.setAttribute("aria-checked", String(member === state.staff));
+        button.innerHTML = `<span>${member}</span><span class="staff-count">${countStaffBookings(member)}件</span>`;
+        button.addEventListener("click", () => {
+          state.staff = member;
+          state.time = "";
+          clearForm();
+          renderAll();
+        });
+        els.staffList.appendChild(button);
+      });
+
+      els.selectedPill.innerHTML = `<span>選択中</span><strong>${state.staff}</strong>`;
+    }
+
+    function renderCalendar() {
+      els.calendarGrid.innerHTML = "";
+      const firstOffset = (new Date(Date.UTC(2026, 6, 1)).getUTCDay() + 6) % 7;
+
+      for (let i = 0; i < firstOffset; i += 1) {
+        const blank = document.createElement("div");
+        blank.className = "day-blank";
+        blank.setAttribute("aria-hidden", "true");
+        els.calendarGrid.appendChild(blank);
+      }
+
+      businessDays.forEach((day) => {
+        const booked = countDayBookings(state.staff, day.iso);
+        const available = TIMES.length - booked;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = [
+          "day-button",
+          day.iso === state.date ? "is-selected" : "",
+          available === 0 ? "is-full" : ""
+        ].filter(Boolean).join(" ");
+        button.setAttribute("role", "gridcell");
+        button.setAttribute("aria-label", `${day.label} 空き${available}件`);
+        button.innerHTML = `
+          <span class="day-number">${day.day}</span>
+          <span class="day-meta"><span>${WEEKDAYS[day.dow]}</span><span>${available}/${TIMES.length}</span></span>
+        `;
+        button.addEventListener("click", () => {
+          state.date = day.iso;
+          state.time = "";
+          clearForm();
+          renderAll();
+        });
+        els.calendarGrid.appendChild(button);
+      });
+
+      updateDayAvailability();
+    }
+
+    function renderSlots() {
+      const day = businessDays.find((item) => item.iso === state.date);
+      const booked = countDayBookings(state.staff, state.date);
+      els.slotsTitle.textContent = day ? day.label : "";
+      els.slotsStatus.textContent = `${state.staff} / 空き ${TIMES.length - booked}`;
+      els.slotGrid.innerHTML = "";
+
+      TIMES.forEach((time) => {
+        const booking = bookingFor(state.staff, state.date, time);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = [
+          "slot-button",
+          time === state.time ? "is-selected" : "",
+          booking ? "is-booked" : ""
+        ].filter(Boolean).join(" ");
+        button.setAttribute("aria-label", `${time} ${booking ? "予約済み" : "空き"}`);
+        button.innerHTML = `
+          <strong>${time}</strong>
+          <span>${booking ? booking.company || booking.name || "予約済み" : "空き"}</span>
+        `;
+        button.addEventListener("click", () => {
+          state.time = time;
+          fillForm(booking);
+          renderSlots();
+          renderForm();
+        });
+        els.slotGrid.appendChild(button);
+      });
+    }
+
+    function renderForm() {
+      const day = businessDays.find((item) => item.iso === state.date);
+      const hasSlot = Boolean(state.date && state.time);
+      const booking = hasSlot ? bookingFor(state.staff, state.date, state.time) : null;
+
+      els.selectionValue.textContent = hasSlot ? `${state.time}` : "未選択";
+      els.selectionSub.textContent = hasSlot && day ? `${state.staff} / ${day.label}` : "日付と時間を選択";
+      els.save.disabled = !hasSlot;
+      els.delete.disabled = !booking;
+      els.save.textContent = booking ? "予約を更新" : "予約を確定";
+      els.statusLine.textContent = booking?.updatedAt ? `更新 ${formatDateTime(booking.updatedAt)}` : "";
+    }
+
+    function renderMetrics() {
+      const staffBooked = countStaffBookings(state.staff);
+      const allBooked = STAFF.reduce((sum, member) => sum + countStaffBookings(member), 0);
+      els.staffBookedCount.textContent = String(staffBooked);
+      els.allBookedCount.textContent = String(allBooked);
+      els.lastUpdatedLabel.textContent = state.data.updatedAt ? `最終更新: ${formatDateTime(state.data.updatedAt)}` : "未保存";
+    }
+
+    function updateDayAvailability() {
+      const booked = countDayBookings(state.staff, state.date);
+      els.dayAvailability.textContent = `空き ${TIMES.length - booked} / ${TIMES.length}`;
+    }
+
+    function countStaffBookings(staff) {
+      const staffData = state.data.reservations?.[staff] || {};
+      return Object.values(staffData).reduce((total, daySlots) => total + Object.keys(daySlots).length, 0);
+    }
+
+    function countDayBookings(staff, date) {
+      return Object.keys(state.data.reservations?.[staff]?.[date] || {}).length;
+    }
+
+    function fillForm(booking) {
+      els.company.value = booking?.company || "";
+      els.name.value = booking?.name || "";
+      els.email.value = booking?.email || "";
+      els.tel.value = booking?.tel || "";
+      els.memo.value = booking?.memo || "";
+    }
+
+    function clearForm() {
+      els.form.reset();
+      els.statusLine.textContent = "";
+    }
+
+    function saveBooking() {
+      if (!state.time) return;
+      if (!els.form.reportValidity()) return;
+
+      const existing = bookingFor(state.staff, state.date, state.time);
+      const daySlots = ensureSlot(state.staff, state.date);
+      const now = new Date().toISOString();
+      daySlots[state.time] = {
+        company: els.company.value.trim(),
+        name: els.name.value.trim(),
+        email: els.email.value.trim(),
+        tel: els.tel.value.trim(),
+        memo: els.memo.value.trim(),
+        createdAt: existing?.createdAt || now,
+        updatedAt: now
+      };
+
+      const saved = persist();
+      renderAll();
+      els.statusLine.textContent = saved ? "保存しました" : "保存できませんでした";
+    }
+
+    function deleteBooking() {
+      if (!state.time) return;
+      const booking = bookingFor(state.staff, state.date, state.time);
+      if (!booking) return;
+      const ok = window.confirm(`${state.staff} / ${state.date} ${state.time} の予約を解除しますか？`);
+      if (!ok) return;
+      delete state.data.reservations[state.staff][state.date][state.time];
+      if (Object.keys(state.data.reservations[state.staff][state.date]).length === 0) {
+        delete state.data.reservations[state.staff][state.date];
+      }
+      const saved = persist();
+      clearForm();
+      renderAll();
+      els.statusLine.textContent = saved ? "解除しました" : "保存できませんでした";
+    }
+
+    function resetAll() {
+      const ok = window.confirm("このブラウザに保存された予約をすべて削除しますか？");
+      if (!ok) return;
+      state.data = { reservations: {}, updatedAt: new Date().toISOString() };
+      const saved = persist();
+      state.time = "";
+      clearForm();
+      renderAll();
+      els.statusLine.textContent = saved ? "全削除しました" : "保存できませんでした";
+    }
+
+    function exportJson() {
+      const payload = JSON.stringify(state.data, null, 2);
+      downloadBlob(payload, "web-meeting-bookings-2026-07.json", "application/json");
+    }
+
+    function exportCsv() {
+      const rows = [["担当者", "日付", "曜日", "時間", "会社名", "お名前", "メール", "電話", "メモ", "作成日時", "更新日時"]];
+      STAFF.forEach((member) => {
+        businessDays.forEach((day) => {
+          TIMES.forEach((time) => {
+            const booking = bookingFor(member, day.iso, time);
+            if (!booking) return;
+            rows.push([
+              member,
+              day.iso,
+              WEEKDAYS[day.dow],
+              time,
+              booking.company || "",
+              booking.name || "",
+              booking.email || "",
+              booking.tel || "",
+              booking.memo || "",
+              booking.createdAt || "",
+              booking.updatedAt || ""
+            ]);
+          });
+        });
+      });
+
+      const csv = rows.map((row) => row.map(escapeCsv).join(",")).join("\n");
+      downloadBlob(`\uFEFF${csv}`, "web-meeting-bookings-2026-07.csv", "text/csv;charset=utf-8");
+    }
+
+    function importJson(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(String(reader.result || "{}"));
+          if (!parsed.reservations || typeof parsed.reservations !== "object") {
+            throw new Error("Invalid reservation file");
+          }
+          const ok = window.confirm("JSONの予約データを読み込み、現在の保存内容を置き換えますか？");
+          if (!ok) return;
+          state.data = parsed;
+          state.data.updatedAt = new Date().toISOString();
+          const saved = persist();
+          state.time = "";
+          clearForm();
+          renderAll();
+          els.statusLine.textContent = saved ? "読み込みました" : "保存できませんでした";
+        } catch (error) {
+          window.alert("JSONを読み込めませんでした。");
+          console.error(error);
+        } finally {
+          els.importFile.value = "";
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function escapeCsv(value) {
+      const text = String(value ?? "");
+      return `"${text.replaceAll('"', '""')}"`;
+    }
+
+    function downloadBlob(content, filename, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function formatDateTime(iso) {
+      try {
+        return new Intl.DateTimeFormat("ja-JP", {
+          month: "numeric",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        }).format(new Date(iso));
+      } catch {
+        return iso;
+      }
+    }
+  </script>
+</body>
+</html>
