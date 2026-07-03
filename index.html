@@ -472,6 +472,14 @@
       margin-bottom: 12px;
     }
 
+    .slots-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
     .slots-head h3 {
       margin: 0;
       font-size: 18px;
@@ -482,6 +490,13 @@
       font-size: 12px;
       font-weight: 800;
       text-align: right;
+    }
+
+    .bulk-day-button {
+      min-height: 36px;
+      padding: 8px 10px;
+      font-size: 12px;
+      white-space: nowrap;
     }
 
     .slot-grid {
@@ -870,7 +885,10 @@
           <div class="slots-panel">
             <div class="slots-head">
               <h3 id="slotsTitle">7月1日 水曜日</h3>
-              <span id="slotsStatus">島村 / 空き 5</span>
+              <div class="slots-actions">
+                <span id="slotsStatus">島村 / 空き 5</span>
+                <button class="secondary-button bulk-day-button" id="bulkDayButton" type="button">この日を一括確保</button>
+              </div>
             </div>
             <div class="slot-grid" id="slotGrid" aria-label="予約時間"></div>
           </div>
@@ -972,6 +990,7 @@
       date: "2026-07-01",
       time: "",
       mode: "booking",
+      isSaving: false,
       data: {
         reservations: {},
         updatedAt: ""
@@ -982,6 +1001,7 @@
       staffSelect: document.getElementById("staffSelect"),
       calendarGrid: document.getElementById("calendarGrid"),
       slotGrid: document.getElementById("slotGrid"),
+      bulkDay: document.getElementById("bulkDayButton"),
       dayAvailability: document.getElementById("dayAvailability"),
       slotsTitle: document.getElementById("slotsTitle"),
       slotsStatus: document.getElementById("slotsStatus"),
@@ -1004,6 +1024,10 @@
     els.form.addEventListener("submit", (event) => {
       event.preventDefault();
       saveBooking();
+    });
+
+    els.bulkDay.addEventListener("click", () => {
+      saveDayBookings();
     });
 
     els.staffSelect.addEventListener("change", (event) => {
@@ -1203,8 +1227,11 @@
     function renderSlots() {
       const day = businessDays.find((item) => item.iso === state.date);
       const booked = countDayBookings(state.staff, state.date);
+      const available = TIMES.length - booked;
       els.slotsTitle.textContent = day ? day.label : "";
-      els.slotsStatus.textContent = `${state.staff} / 空き ${TIMES.length - booked}`;
+      els.slotsStatus.textContent = `${state.staff} / 空き ${available}`;
+      els.bulkDay.disabled = !day || state.isSaving || available === 0;
+      els.bulkDay.textContent = available === 0 ? "空きなし" : "この日を一括確保";
       els.slotGrid.innerHTML = "";
 
       TIMES.forEach((time) => {
@@ -1245,14 +1272,14 @@
       const booking = hasSlot ? bookingFor(state.staff, state.date, state.time) : null;
       if (booking) fillForm(booking);
 
-      els.selectionValue.textContent = hasSlot && day ? `${day.label} ${state.time}` : "未選択";
+      els.selectionValue.textContent = hasSlot && day ? `${day.label} ${state.time}` : day?.label || "未選択";
       els.selectionSub.textContent = hasSlot
         ? `担当者: ${state.staff}${booking ? " / 予約済み" : ""}`
-        : "日付と時間を選択";
+        : `担当者: ${state.staff} / 時間を選択、またはこの日を一括確保`;
       els.memoDate.disabled = Boolean(booking);
       els.memoTime.disabled = Boolean(booking);
       els.memo.readOnly = Boolean(booking);
-      els.save.disabled = !hasSlot || Boolean(booking);
+      els.save.disabled = state.isSaving || !hasSlot || Boolean(booking);
       els.save.textContent = booking ? "予約済み" : "予約を確定";
       els.statusLine.textContent = booking ? "予約済み枠の商談メモを表示中" : "";
     }
@@ -1277,6 +1304,10 @@
 
     function countDayBookings(staff, date) {
       return Object.keys(state.data.reservations?.[staff]?.[date] || {}).length;
+    }
+
+    function availableTimesFor(staff, date) {
+      return TIMES.filter((time) => !bookingFor(staff, date, time));
     }
 
     function fillForm(booking) {
@@ -1348,7 +1379,7 @@
 
     async function saveBooking() {
       if (!state.time) return;
-      if (!els.form.reportValidity()) return;
+      if (!validateMemoFields()) return;
       if (bookingFor(state.staff, state.date, state.time)) {
         state.time = "";
         renderAll();
@@ -1356,14 +1387,94 @@
         return;
       }
 
+      const reservation = buildReservation(state.time);
+      const reservationId = reservationIdFor(state.staff, state.date, state.time);
+      const reservationRef = doc(db, "reservations", reservationId);
+
+      state.isSaving = true;
+      renderAll();
+      els.statusLine.textContent = "保存中...";
+      try {
+        await setDoc(reservationRef, reservation);
+        state.isSaving = false;
+        state.time = "";
+        clearForm();
+        renderAll();
+        els.statusLine.textContent = "保存しました";
+      } catch (error) {
+        console.error("Failed to create reservation", error);
+        state.isSaving = false;
+        renderAll();
+        els.statusLine.textContent = "保存できませんでした。この枠は予約済みの可能性があります";
+      }
+    }
+
+    async function saveDayBookings() {
+      const day = businessDays.find((item) => item.iso === state.date);
+      if (!day) return;
+      if (state.mode === "view") {
+        state.time = "";
+        state.mode = "booking";
+        clearForm();
+        renderAll();
+        els.statusLine.textContent = "一括確保用の商談メモを入力してください";
+        els.memo.focus();
+        return;
+      }
+      const openTimes = availableTimesFor(state.staff, state.date);
+      if (openTimes.length === 0) {
+        renderAll();
+        els.statusLine.textContent = "この日の空き枠はありません";
+        return;
+      }
+      if (!validateMemoFields()) return;
+
+      state.isSaving = true;
+      renderAll();
+      els.statusLine.textContent = `${openTimes.length}枠を保存中...`;
+
+      let savedCount = 0;
+      let failedCount = 0;
+      for (const time of openTimes) {
+        if (bookingFor(state.staff, state.date, time)) continue;
+        const reservation = buildReservation(time);
+        const reservationRef = doc(db, "reservations", reservationIdFor(state.staff, state.date, time));
+        try {
+          await setDoc(reservationRef, reservation);
+          savedCount += 1;
+        } catch (error) {
+          console.error("Failed to create day reservation", error);
+          failedCount += 1;
+        }
+      }
+
+      state.isSaving = false;
+      state.time = "";
+      clearForm();
+      renderAll();
+      if (failedCount > 0) {
+        els.statusLine.textContent = `${savedCount}枠を保存しました。${failedCount}枠は予約済みの可能性があります`;
+        return;
+      }
+      els.statusLine.textContent = `${savedCount}枠を一括保存しました`;
+    }
+
+    function validateMemoFields() {
+      els.memo.setCustomValidity(els.memo.value.trim() ? "" : "商談メモを入力してください");
+      const isValid = els.form.reportValidity();
+      els.memo.setCustomValidity("");
+      return isValid;
+    }
+
+    function buildReservation(time) {
       const day = businessDays.find((item) => item.iso === state.date);
       const memoDate = els.memoDate.value;
       const memoTime = els.memoTime.value;
-      const reservation = {
+      return {
         staff: state.staff,
         date: state.date,
-        time: state.time,
-        datetimeLabel: day ? `${day.label} ${state.time}` : `${state.date} ${state.time}`,
+        time,
+        datetimeLabel: day ? `${day.label} ${time}` : `${state.date} ${time}`,
         memoDate,
         memoTime,
         memoTimestampLabel: `${memoDate} ${memoTime}`,
@@ -1371,22 +1482,6 @@
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
-      const reservationId = reservationIdFor(state.staff, state.date, state.time);
-      const reservationRef = doc(db, "reservations", reservationId);
-
-      els.save.disabled = true;
-      els.statusLine.textContent = "保存中...";
-      try {
-        await setDoc(reservationRef, reservation);
-        state.time = "";
-        clearForm();
-        renderAll();
-        els.statusLine.textContent = "保存しました";
-      } catch (error) {
-        console.error("Failed to create reservation", error);
-        renderAll();
-        els.statusLine.textContent = "保存できませんでした。この枠は予約済みの可能性があります";
-      }
     }
 
     function formatDateTime(iso) {
