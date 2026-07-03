@@ -128,9 +128,10 @@
 
     .workspace {
       display: grid;
-      grid-template-columns: 300px minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) 400px;
       grid-template-areas:
-        "sidebar calendar";
+        "hero hero"
+        "calendar sidebar";
       gap: 16px;
       align-items: start;
       min-width: 0;
@@ -150,6 +151,11 @@
       display: grid;
       gap: 16px;
       align-content: start;
+    }
+
+    .hero-panel {
+      grid-area: hero;
+      overflow: hidden;
     }
 
     .calendar-panel {
@@ -296,13 +302,9 @@
       transform: translateY(-1px);
     }
 
-    .calendar-panel {
-      overflow: hidden;
-    }
-
     .visual-band {
       position: relative;
-      min-height: 300px;
+      min-height: 220px;
       background: #e8edf2;
       overflow: hidden;
     }
@@ -310,56 +312,29 @@
     .visual-band img {
       width: 100%;
       height: 100%;
-      min-height: 300px;
+      min-height: 220px;
       object-fit: cover;
       object-position: center;
     }
 
-    .visual-overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 20px;
-      background: linear-gradient(180deg, rgba(245, 245, 247, 0.08), rgba(245, 245, 247, 0.88));
-    }
-
-    .hero-copy {
-      max-width: 480px;
-    }
-
-    .hero-copy h1 {
-      margin-bottom: 10px;
-      font-size: clamp(40px, 4.6vw, 68px);
-      line-height: 0.96;
-      letter-spacing: 0;
-    }
-
-    .hero-copy p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .hero-controls {
-      width: min(360px, 36%);
+    .calendar-toolbar {
       display: grid;
-      gap: 10px;
+      grid-template-columns: minmax(220px, 280px) minmax(260px, 340px);
+      align-items: end;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
     }
 
-    .hero-controls .staff-picker,
-    .hero-controls .metric-stack {
+    .calendar-toolbar .staff-picker,
+    .calendar-toolbar .metric-stack {
       margin-bottom: 0;
     }
 
-    .hero-controls .input,
-    .hero-controls .metric {
-      background: rgba(255, 255, 255, 0.76);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+    .calendar-toolbar .metric-stack {
+      width: 100%;
     }
 
     .calendar-body {
@@ -681,9 +656,10 @@
 
     @media (max-width: 1180px) {
       .workspace {
-        grid-template-columns: 280px minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) 360px;
         grid-template-areas:
-          "sidebar calendar";
+          "hero hero"
+          "calendar sidebar";
       }
     }
 
@@ -707,8 +683,13 @@
       .workspace {
         grid-template-columns: 1fr;
         grid-template-areas:
+          "hero"
           "calendar"
           "sidebar";
+      }
+
+      .hero-panel {
+        grid-area: hero;
       }
 
       .calendar-panel {
@@ -719,19 +700,13 @@
         font-size: 34px;
       }
 
-      .visual-overlay {
-        align-items: flex-start;
-        flex-direction: column;
-        justify-content: flex-end;
-      }
-
       .visual-band,
       .visual-band img {
-        min-height: 340px;
+        min-height: 220px;
       }
 
-      .hero-controls {
-        width: 100%;
+      .calendar-toolbar {
+        grid-template-columns: 1fr;
       }
 
       .calendar-body {
@@ -776,7 +751,7 @@
         grid-template-columns: 1fr;
       }
 
-      .hero-controls .metric-stack {
+      .calendar-toolbar .metric-stack {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
@@ -847,66 +822,37 @@
     </header>
 
     <main class="workspace">
-      <div class="sidebar-stack">
-        <aside class="panel detail-panel" aria-label="対応日時と商談メモ">
-          <div class="selection-summary">
-            <div class="label">対応日時</div>
-            <div class="value" id="selectionValue">未選択</div>
-            <div class="sub" id="selectionSub">日付と時間を選択</div>
-          </div>
-
-          <form class="form-grid" id="bookingForm">
-            <div class="field">
-              <label for="memoDateInput">メモ日付</label>
-              <select class="input" id="memoDateInput" name="memoDate" required></select>
-            </div>
-            <div class="field">
-              <label for="memoTimeSelect">メモ時間</label>
-              <select class="input" id="memoTimeSelect" name="memoTime" required></select>
-            </div>
-            <div class="field field-wide">
-              <label for="memoInput">商談メモ</label>
-              <textarea id="memoInput" name="memo" required placeholder="検討テーマ、次回確認事項、希望デモ内容など"></textarea>
-            </div>
-            <div class="form-actions">
-              <button class="primary-button" id="saveButton" type="submit" disabled>予約を確定</button>
-            </div>
-            <div class="status-line" id="statusLine" aria-live="polite"></div>
-          </form>
-        </aside>
-      </div>
-
-      <section class="panel calendar-panel" aria-label="予約カレンダー">
+      <section class="panel hero-panel" aria-label="展示会相談カウンター">
         <div class="visual-band">
           <img src="assets/consultation-hero.png" alt="展示会相談カウンターでタブレットの予約画面を表示しているイメージ">
-          <div class="visual-overlay">
-            <div class="hero-copy">
+        </div>
+      </section>
+
+      <section class="panel calendar-panel" aria-label="予約カレンダー">
+        <div class="calendar-body">
+          <div class="calendar-toolbar" aria-label="担当者選択と予約状況">
+            <div>
               <p class="kicker">EXPO MEETING</p>
               <h1>WEB会議予約</h1>
-              <p>2026年7月のカレンダーを見ながら、担当者ごとの空き時間をその場で確認できます。</p>
-              <p>10:00 / 11:00 / 13:00 / 14:30 / 16:00</p>
-            </div>
-            <div class="hero-controls" aria-label="担当者選択と予約状況">
+              <p class="lead">2026年7月のカレンダーを見ながら、担当者ごとの空き時間をその場で確認できます。</p>
               <div class="staff-picker">
                 <label for="staffSelect">担当者</label>
                 <select class="input staff-select" id="staffSelect" name="staff"></select>
               </div>
+            </div>
 
-              <div class="metric-stack" aria-label="予約状況">
-                <div class="metric">
-                  <strong id="staffBookedCount">0</strong>
-                  <span>担当者の予約</span>
-                </div>
-                <div class="metric">
-                  <strong id="allBookedCount">0</strong>
-                  <span>全体の予約</span>
-                </div>
+            <div class="metric-stack" aria-label="予約状況">
+              <div class="metric">
+                <strong id="staffBookedCount">0</strong>
+                <span>担当者の予約</span>
+              </div>
+              <div class="metric">
+                <strong id="allBookedCount">0</strong>
+                <span>全体の予約</span>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="calendar-body">
           <div class="calendar-head">
             <div>
               <h2>2026年7月</h2>
@@ -937,6 +883,35 @@
           </div>
         </div>
       </section>
+
+      <div class="sidebar-stack">
+        <aside class="panel detail-panel" aria-label="対応日時と商談メモ">
+          <div class="selection-summary">
+            <div class="label">対応日時</div>
+            <div class="value" id="selectionValue">未選択</div>
+            <div class="sub" id="selectionSub">日付と時間を選択</div>
+          </div>
+
+          <form class="form-grid" id="bookingForm">
+            <div class="field">
+              <label for="memoDateInput">メモ日付</label>
+              <select class="input" id="memoDateInput" name="memoDate" required></select>
+            </div>
+            <div class="field">
+              <label for="memoTimeSelect">メモ時間</label>
+              <select class="input" id="memoTimeSelect" name="memoTime" required></select>
+            </div>
+            <div class="field field-wide">
+              <label for="memoInput">商談メモ</label>
+              <textarea id="memoInput" name="memo" required placeholder="検討テーマ、次回確認事項、希望デモ内容など"></textarea>
+            </div>
+            <div class="form-actions">
+              <button class="primary-button" id="saveButton" type="submit" disabled>予約を確定</button>
+            </div>
+            <div class="status-line" id="statusLine" aria-live="polite"></div>
+          </form>
+        </aside>
+      </div>
 
     </main>
   </div>
