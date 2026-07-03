@@ -320,13 +320,17 @@
 
     .calendar-toolbar {
       display: grid;
-      grid-template-columns: minmax(220px, 280px) minmax(260px, 340px);
+      grid-template-columns: minmax(0, 1fr) minmax(240px, 340px);
       align-items: end;
       justify-content: space-between;
       gap: 14px;
       margin-bottom: 16px;
       padding-bottom: 14px;
       border-bottom: 1px solid var(--line);
+    }
+
+    .calendar-toolbar h1 {
+      white-space: nowrap;
     }
 
     .calendar-toolbar .staff-picker,
