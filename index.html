@@ -82,7 +82,7 @@
     }
 
     .page {
-      width: min(1480px, calc(100% - 32px));
+      width: min(1760px, calc(100% - 32px));
       margin: 0 auto;
       padding: 18px 0 32px;
     }
@@ -128,7 +128,10 @@
 
     .workspace {
       display: grid;
-      grid-template-columns: 260px minmax(520px, 1fr) 380px;
+      grid-template-columns: 300px minmax(0, 1fr);
+      grid-template-areas:
+        "staff calendar"
+        "detail calendar";
       gap: 16px;
       align-items: start;
       min-width: 0;
@@ -143,10 +146,16 @@
       -webkit-backdrop-filter: saturate(180%) blur(18px);
     }
 
-    .staff-panel,
+    .staff-panel {
+      grid-area: staff;
+    }
+
+    .calendar-panel {
+      grid-area: calendar;
+    }
+
     .detail-panel {
-      position: sticky;
-      top: 18px;
+      grid-area: detail;
     }
 
     .staff-panel {
@@ -680,11 +689,13 @@
     @media (max-width: 1180px) {
       .workspace {
         grid-template-columns: 240px minmax(0, 1fr);
+        grid-template-areas:
+          "staff calendar"
+          "detail detail";
       }
 
       .detail-panel {
         position: static;
-        grid-column: 1 / -1;
       }
 
       .form-grid {
@@ -717,6 +728,10 @@
 
       .workspace {
         grid-template-columns: 1fr;
+        grid-template-areas:
+          "staff"
+          "calendar"
+          "detail";
       }
 
       .staff-panel {
