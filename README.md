@@ -1,4 +1,4 @@
-# Web Meeting Booking Board
+# WEB会議予約
 
 Browser-based booking board for post-exhibition web meetings.
 
