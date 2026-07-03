@@ -535,6 +535,11 @@
       background: var(--green-quiet);
     }
 
+    .slot-button.is-booked:hover {
+      border-color: rgba(47, 155, 85, 0.34);
+      background: #f1fbf5;
+    }
+
     .empty-slots {
       display: grid;
       place-items: center;
@@ -986,6 +991,7 @@
       staff: STAFF[0],
       date: "2026-07-01",
       time: "",
+      mode: "booking",
       data: {
         reservations: {},
         updatedAt: ""
@@ -1024,6 +1030,7 @@
     els.staffSelect.addEventListener("change", (event) => {
       state.staff = event.target.value;
       state.time = "";
+      state.mode = "booking";
       clearForm();
       renderAll();
     });
@@ -1205,6 +1212,7 @@
         button.addEventListener("click", () => {
           state.date = day.iso;
           state.time = "";
+          state.mode = "booking";
           clearForm();
           renderAll();
         });
@@ -1230,20 +1238,18 @@
           booking ? "is-booked" : "",
           time === state.time ? "is-selected" : ""
         ].filter(Boolean).join(" ");
-        button.disabled = Boolean(booking);
         button.setAttribute("aria-label", `${time} ${booking ? "予約済み" : "空き"}`);
         button.innerHTML = `
           <strong>${time}</strong>
           <span>${booking ? "予約済み" : "空き"}</span>
         `;
-        if (!booking) {
-          button.addEventListener("click", () => {
-            state.time = time;
-            fillForm(null);
-            renderSlots();
-            renderForm();
-          });
-        }
+        button.addEventListener("click", () => {
+          state.time = time;
+          state.mode = booking ? "view" : "booking";
+          fillForm(booking);
+          renderSlots();
+          renderForm();
+        });
         els.slotGrid.appendChild(button);
       });
 
@@ -1258,12 +1264,19 @@
     function renderForm() {
       const day = businessDays.find((item) => item.iso === state.date);
       const hasSlot = Boolean(state.date && state.time);
+      const booking = hasSlot ? bookingFor(state.staff, state.date, state.time) : null;
+      if (booking) fillForm(booking);
 
       els.selectionValue.textContent = hasSlot && day ? `${day.label} ${state.time}` : "未選択";
-      els.selectionSub.textContent = hasSlot ? `担当者: ${state.staff}` : "日付と時間を選択";
-      els.save.disabled = !hasSlot;
-      els.save.textContent = "予約を確定";
-      els.statusLine.textContent = "";
+      els.selectionSub.textContent = hasSlot
+        ? `担当者: ${state.staff}${booking ? " / 予約済み" : ""}`
+        : "日付と時間を選択";
+      els.memoDate.disabled = Boolean(booking);
+      els.memoTime.disabled = Boolean(booking);
+      els.memo.readOnly = Boolean(booking);
+      els.save.disabled = !hasSlot || Boolean(booking);
+      els.save.textContent = booking ? "予約済み" : "予約を確定";
+      els.statusLine.textContent = booking ? "予約済み枠の商談メモを表示中" : "";
     }
 
     function renderMetrics() {
@@ -1298,6 +1311,9 @@
       els.memo.value = "";
       els.memoDate.value = getTodayIso();
       els.memoTime.value = chooseInitialMemoTime();
+      els.memoDate.disabled = false;
+      els.memoTime.disabled = false;
+      els.memo.readOnly = false;
       els.statusLine.textContent = "";
     }
 
@@ -1315,7 +1331,7 @@
           reservations[reservation.staff][reservation.date][reservation.time] = reservation;
         });
         const selectedSlotWasBooked = Boolean(
-          state.time && reservations[state.staff]?.[state.date]?.[state.time]
+          state.mode === "booking" && state.time && reservations[state.staff]?.[state.date]?.[state.time]
         );
 
         state.data = {
@@ -1324,6 +1340,7 @@
         };
         if (selectedSlotWasBooked) {
           state.time = "";
+          state.mode = "booking";
           clearForm();
         }
         renderAll();
