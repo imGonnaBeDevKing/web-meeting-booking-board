@@ -989,6 +989,7 @@
       staff: STAFF[0],
       date: "2026-07-01",
       time: "",
+      selectedTimes: [],
       mode: "booking",
       isSaving: false,
       data: {
@@ -1032,8 +1033,7 @@
 
     els.staffSelect.addEventListener("change", (event) => {
       state.staff = event.target.value;
-      state.time = "";
-      state.mode = "booking";
+      resetBookingSelection();
       clearForm();
       renderAll();
     });
@@ -1213,8 +1213,7 @@
         `;
         button.addEventListener("click", () => {
           state.date = day.iso;
-          state.time = "";
-          state.mode = "booking";
+          resetBookingSelection();
           clearForm();
           renderAll();
         });
@@ -1236,22 +1235,35 @@
 
       TIMES.forEach((time) => {
         const booking = bookingFor(state.staff, state.date, time);
+        const isSelected = booking
+          ? state.mode === "view" && time === state.time
+          : state.selectedTimes.includes(time);
         const button = document.createElement("button");
         button.type = "button";
         button.className = [
           "slot-button",
           booking ? "is-booked" : "",
-          time === state.time ? "is-selected" : ""
+          isSelected ? "is-selected" : ""
         ].filter(Boolean).join(" ");
         button.setAttribute("aria-label", `${time} ${booking ? "予約済み" : "空き"}`);
+        button.setAttribute("aria-pressed", isSelected ? "true" : "false");
         button.innerHTML = `
           <strong>${time}</strong>
-          <span>${booking ? "予約済み" : "空き"}</span>
+          <span>${booking ? "予約済み" : isSelected ? "選択中" : "空き"}</span>
         `;
         button.addEventListener("click", () => {
-          state.time = time;
-          state.mode = booking ? "view" : "booking";
-          fillForm(booking);
+          if (booking) {
+            state.time = time;
+            state.selectedTimes = [];
+            state.mode = "view";
+            fillForm(booking);
+          } else {
+            const wasViewing = state.mode === "view";
+            state.time = "";
+            state.mode = "booking";
+            toggleSelectedTime(time);
+            if (wasViewing) clearForm();
+          }
           renderSlots();
           renderForm();
         });
@@ -1268,19 +1280,26 @@
 
     function renderForm() {
       const day = businessDays.find((item) => item.iso === state.date);
-      const hasSlot = Boolean(state.date && state.time);
-      const booking = hasSlot ? bookingFor(state.staff, state.date, state.time) : null;
+      const selectedTimes = selectedOpenTimes();
+      const hasSelection = selectedTimes.length > 0;
+      const booking = state.mode === "view" && state.time ? bookingFor(state.staff, state.date, state.time) : null;
       if (booking) fillForm(booking);
 
-      els.selectionValue.textContent = hasSlot && day ? `${day.label} ${state.time}` : day?.label || "未選択";
-      els.selectionSub.textContent = hasSlot
+      els.selectionValue.textContent = booking && day
+        ? `${day.label} ${state.time}`
+        : selectionLabelFor(day, selectedTimes);
+      els.selectionSub.textContent = booking
         ? `担当者: ${state.staff}${booking ? " / 予約済み" : ""}`
-        : `担当者: ${state.staff} / 時間を選択、またはこの日を一括確保`;
+        : selectionSubFor(selectedTimes);
       els.memoDate.disabled = Boolean(booking);
       els.memoTime.disabled = Boolean(booking);
       els.memo.readOnly = Boolean(booking);
-      els.save.disabled = state.isSaving || !hasSlot || Boolean(booking);
-      els.save.textContent = booking ? "予約済み" : "予約を確定";
+      els.save.disabled = state.isSaving || !hasSelection || Boolean(booking);
+      els.save.textContent = booking
+        ? "予約済み"
+        : hasSelection
+          ? `選択した${selectedTimes.length}枠を予約`
+          : "予約を確定";
       els.statusLine.textContent = booking ? "予約済み枠の商談メモを表示中" : "";
     }
 
@@ -1308,6 +1327,38 @@
 
     function availableTimesFor(staff, date) {
       return TIMES.filter((time) => !bookingFor(staff, date, time));
+    }
+
+    function selectedOpenTimes() {
+      return state.selectedTimes.filter((time) => !bookingFor(state.staff, state.date, time));
+    }
+
+    function toggleSelectedTime(time) {
+      if (state.selectedTimes.includes(time)) {
+        state.selectedTimes = state.selectedTimes.filter((selectedTime) => selectedTime !== time);
+        return;
+      }
+      state.selectedTimes = [...state.selectedTimes, time]
+        .sort((a, b) => TIMES.indexOf(a) - TIMES.indexOf(b));
+    }
+
+    function resetBookingSelection() {
+      state.time = "";
+      state.selectedTimes = [];
+      state.mode = "booking";
+    }
+
+    function selectionLabelFor(day, selectedTimes) {
+      if (!day) return "未選択";
+      if (selectedTimes.length === 0) return day.label;
+      return `${day.label} ${selectedTimes.join(" / ")}`;
+    }
+
+    function selectionSubFor(selectedTimes) {
+      if (selectedTimes.length === 0) {
+        return `担当者: ${state.staff} / 時間を選択、またはこの日を一括確保`;
+      }
+      return `担当者: ${state.staff} / ${selectedTimes.length}枠を選択中`;
     }
 
     function fillForm(booking) {
@@ -1339,23 +1390,21 @@
           }
           reservations[reservation.staff][reservation.date][reservation.time] = reservation;
         });
-        const selectedSlotWasBooked = Boolean(
-          state.mode === "booking" && state.time && reservations[state.staff]?.[state.date]?.[state.time]
-        );
+        const selectedTimesWereBooked = state.mode === "booking"
+          ? state.selectedTimes.filter((time) => reservations[state.staff]?.[state.date]?.[time])
+          : [];
 
         state.data = {
           reservations,
           updatedAt: new Date().toISOString()
         };
-        if (selectedSlotWasBooked) {
-          state.time = "";
-          state.mode = "booking";
-          clearForm();
+        if (selectedTimesWereBooked.length > 0) {
+          state.selectedTimes = state.selectedTimes.filter((time) => !selectedTimesWereBooked.includes(time));
         }
         renderAll();
         els.lastUpdatedLabel.textContent = `同期: ${formatDateTime(state.data.updatedAt)}`;
-        if (selectedSlotWasBooked) {
-          els.statusLine.textContent = "選択中の枠は予約済みになりました";
+        if (selectedTimesWereBooked.length > 0) {
+          els.statusLine.textContent = "選択中の一部枠は予約済みになりました";
         }
       }, (error) => {
         console.error("Firestore sync failed", error);
@@ -1378,43 +1427,27 @@
     }
 
     async function saveBooking() {
-      if (!state.time) return;
+      const timesToSave = selectedOpenTimes();
+      if (timesToSave.length === 0) return;
       if (!validateMemoFields()) return;
-      if (bookingFor(state.staff, state.date, state.time)) {
-        state.time = "";
-        renderAll();
-        els.statusLine.textContent = "この時間は予約済みです";
-        return;
-      }
-
-      const reservation = buildReservation(state.time);
-      const reservationId = reservationIdFor(state.staff, state.date, state.time);
-      const reservationRef = doc(db, "reservations", reservationId);
 
       state.isSaving = true;
       renderAll();
-      els.statusLine.textContent = "保存中...";
-      try {
-        await setDoc(reservationRef, reservation);
-        state.isSaving = false;
-        state.time = "";
-        clearForm();
-        renderAll();
-        els.statusLine.textContent = "保存しました";
-      } catch (error) {
-        console.error("Failed to create reservation", error);
-        state.isSaving = false;
-        renderAll();
-        els.statusLine.textContent = "保存できませんでした。この枠は予約済みの可能性があります";
-      }
+      els.statusLine.textContent = `${timesToSave.length}枠を保存中...`;
+      const result = await saveReservationsForTimes(timesToSave);
+
+      state.isSaving = false;
+      resetBookingSelection();
+      clearForm();
+      renderAll();
+      showSaveResult(result);
     }
 
     async function saveDayBookings() {
       const day = businessDays.find((item) => item.iso === state.date);
       if (!day) return;
       if (state.mode === "view") {
-        state.time = "";
-        state.mode = "booking";
+        resetBookingSelection();
         clearForm();
         renderAll();
         els.statusLine.textContent = "一括確保用の商談メモを入力してください";
@@ -1432,10 +1465,19 @@
       state.isSaving = true;
       renderAll();
       els.statusLine.textContent = `${openTimes.length}枠を保存中...`;
+      const result = await saveReservationsForTimes(openTimes);
 
+      state.isSaving = false;
+      resetBookingSelection();
+      clearForm();
+      renderAll();
+      showSaveResult(result);
+    }
+
+    async function saveReservationsForTimes(times) {
       let savedCount = 0;
       let failedCount = 0;
-      for (const time of openTimes) {
+      for (const time of times) {
         if (bookingFor(state.staff, state.date, time)) continue;
         const reservation = buildReservation(time);
         const reservationRef = doc(db, "reservations", reservationIdFor(state.staff, state.date, time));
@@ -1447,16 +1489,15 @@
           failedCount += 1;
         }
       }
+      return { savedCount, failedCount };
+    }
 
-      state.isSaving = false;
-      state.time = "";
-      clearForm();
-      renderAll();
-      if (failedCount > 0) {
-        els.statusLine.textContent = `${savedCount}枠を保存しました。${failedCount}枠は予約済みの可能性があります`;
+    function showSaveResult(result) {
+      if (result.failedCount > 0) {
+        els.statusLine.textContent = `${result.savedCount}枠を保存しました。${result.failedCount}枠は予約済みの可能性があります`;
         return;
       }
-      els.statusLine.textContent = `${savedCount}枠を一括保存しました`;
+      els.statusLine.textContent = `${result.savedCount}枠を保存しました`;
     }
 
     function validateMemoFields() {
