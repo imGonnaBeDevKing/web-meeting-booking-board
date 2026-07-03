@@ -12,6 +12,7 @@ Browser-based booking board for post-exhibition web meetings.
 - Staff: 島村, 小林, 高木, 見目, 藤之原, 奥田
 - Storage: Firebase Firestore, collection `reservations`
 - Booked slots remain visible as unavailable and cannot be selected again
+- Social preview image for Teams/LINE: `assets/og-image.jpg`
 - Saved fields: selected booking date/time, staff, memo date/time, and meeting memo only
 
 ## Firebase / Firestore
