@@ -130,8 +130,7 @@
       display: grid;
       grid-template-columns: 300px minmax(0, 1fr);
       grid-template-areas:
-        "staff calendar"
-        "detail calendar";
+        "sidebar calendar";
       gap: 16px;
       align-items: start;
       min-width: 0;
@@ -146,16 +145,16 @@
       -webkit-backdrop-filter: saturate(180%) blur(18px);
     }
 
-    .staff-panel {
-      grid-area: staff;
+    .sidebar-stack {
+      grid-area: sidebar;
+      display: grid;
+      gap: 16px;
+      align-content: start;
     }
 
     .calendar-panel {
       grid-area: calendar;
-    }
-
-    .detail-panel {
-      grid-area: detail;
+      min-width: 0;
     }
 
     .staff-panel {
@@ -688,24 +687,9 @@
 
     @media (max-width: 1180px) {
       .workspace {
-        grid-template-columns: 240px minmax(0, 1fr);
+        grid-template-columns: 280px minmax(0, 1fr);
         grid-template-areas:
-          "staff calendar"
-          "detail detail";
-      }
-
-      .detail-panel {
-        position: static;
-      }
-
-      .form-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .form-grid .field-wide,
-      .form-actions,
-      .status-line {
-        grid-column: 1 / -1;
+          "sidebar calendar";
       }
     }
 
@@ -734,8 +718,21 @@
           "detail";
       }
 
+      .sidebar-stack {
+        display: contents;
+      }
+
       .staff-panel {
+        grid-area: staff;
         position: static;
+      }
+
+      .calendar-panel {
+        grid-area: calendar;
+      }
+
+      .detail-panel {
+        grid-area: detail;
       }
 
       h1 {
@@ -862,27 +859,56 @@
     </header>
 
     <main class="workspace">
-      <aside class="panel staff-panel" aria-label="担当者選択">
-        <p class="kicker">EXPO MEETING</p>
-        <h1>WEB会議予約</h1>
-        <p class="lead">2026年7月のカレンダーを見ながら、担当者ごとの空き時間をその場で確認できます。</p>
+      <div class="sidebar-stack">
+        <aside class="panel staff-panel" aria-label="担当者選択">
+          <p class="kicker">EXPO MEETING</p>
+          <h1>WEB会議予約</h1>
+          <p class="lead">2026年7月のカレンダーを見ながら、担当者ごとの空き時間をその場で確認できます。</p>
 
-        <div class="staff-picker">
-          <label for="staffSelect">担当者</label>
-          <select class="input staff-select" id="staffSelect" name="staff"></select>
-        </div>
+          <div class="staff-picker">
+            <label for="staffSelect">担当者</label>
+            <select class="input staff-select" id="staffSelect" name="staff"></select>
+          </div>
 
-        <div class="metric-stack" aria-label="予約状況">
-          <div class="metric">
-            <strong id="staffBookedCount">0</strong>
-            <span>担当者の予約</span>
+          <div class="metric-stack" aria-label="予約状況">
+            <div class="metric">
+              <strong id="staffBookedCount">0</strong>
+              <span>担当者の予約</span>
+            </div>
+            <div class="metric">
+              <strong id="allBookedCount">0</strong>
+              <span>全体の予約</span>
+            </div>
           </div>
-          <div class="metric">
-            <strong id="allBookedCount">0</strong>
-            <span>全体の予約</span>
+        </aside>
+
+        <aside class="panel detail-panel" aria-label="対応日時と商談メモ">
+          <div class="selection-summary">
+            <div class="label">対応日時</div>
+            <div class="value" id="selectionValue">未選択</div>
+            <div class="sub" id="selectionSub">日付と時間を選択</div>
           </div>
-        </div>
-      </aside>
+
+          <form class="form-grid" id="bookingForm">
+            <div class="field">
+              <label for="memoDateInput">メモ日付</label>
+              <select class="input" id="memoDateInput" name="memoDate" required></select>
+            </div>
+            <div class="field">
+              <label for="memoTimeSelect">メモ時間</label>
+              <select class="input" id="memoTimeSelect" name="memoTime" required></select>
+            </div>
+            <div class="field field-wide">
+              <label for="memoInput">商談メモ</label>
+              <textarea id="memoInput" name="memo" required placeholder="検討テーマ、次回確認事項、希望デモ内容など"></textarea>
+            </div>
+            <div class="form-actions">
+              <button class="primary-button" id="saveButton" type="submit" disabled>予約を確定</button>
+            </div>
+            <div class="status-line" id="statusLine" aria-live="polite"></div>
+          </form>
+        </aside>
+      </div>
 
       <section class="panel calendar-panel" aria-label="予約カレンダー">
         <div class="visual-band">
@@ -933,32 +959,6 @@
         </div>
       </section>
 
-      <aside class="panel detail-panel" aria-label="対応日時と商談メモ">
-        <div class="selection-summary">
-          <div class="label">対応日時</div>
-          <div class="value" id="selectionValue">未選択</div>
-          <div class="sub" id="selectionSub">日付と時間を選択</div>
-        </div>
-
-        <form class="form-grid" id="bookingForm">
-          <div class="field">
-            <label for="memoDateInput">メモ日付</label>
-            <select class="input" id="memoDateInput" name="memoDate" required></select>
-          </div>
-          <div class="field">
-            <label for="memoTimeSelect">メモ時間</label>
-            <select class="input" id="memoTimeSelect" name="memoTime" required></select>
-          </div>
-          <div class="field field-wide">
-            <label for="memoInput">商談メモ</label>
-            <textarea id="memoInput" name="memo" required placeholder="検討テーマ、次回確認事項、希望デモ内容など"></textarea>
-          </div>
-          <div class="form-actions">
-            <button class="primary-button" id="saveButton" type="submit" disabled>予約を確定</button>
-          </div>
-          <div class="status-line" id="statusLine" aria-live="polite"></div>
-        </form>
-      </aside>
     </main>
   </div>
 
