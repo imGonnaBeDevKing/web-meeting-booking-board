@@ -1152,28 +1152,31 @@
 
       TIMES.forEach((time) => {
         const booking = bookingFor(state.staff, state.date, time);
-        if (booking) return;
         const button = document.createElement("button");
         button.type = "button";
         button.className = [
           "slot-button",
+          booking ? "is-booked" : "",
           time === state.time ? "is-selected" : ""
         ].filter(Boolean).join(" ");
-        button.setAttribute("aria-label", `${time} 空き`);
+        button.disabled = Boolean(booking);
+        button.setAttribute("aria-label", `${time} ${booking ? "予約済み" : "空き"}`);
         button.innerHTML = `
           <strong>${time}</strong>
-          <span>空き</span>
+          <span>${booking ? "予約済み" : "空き"}</span>
         `;
-        button.addEventListener("click", () => {
-          state.time = time;
-          fillForm(null);
-          renderSlots();
-          renderForm();
-        });
+        if (!booking) {
+          button.addEventListener("click", () => {
+            state.time = time;
+            fillForm(null);
+            renderSlots();
+            renderForm();
+          });
+        }
         els.slotGrid.appendChild(button);
       });
 
-      if (els.slotGrid.children.length === 0) {
+      if (TIMES.length === booked) {
         const empty = document.createElement("div");
         empty.className = "empty-slots";
         empty.textContent = "この日の空き時間はありません";
@@ -1281,9 +1284,9 @@
       if (!state.time) return;
       if (!els.form.reportValidity()) return;
       if (bookingFor(state.staff, state.date, state.time)) {
-        els.statusLine.textContent = "この時間は予約済みです";
         state.time = "";
         renderAll();
+        els.statusLine.textContent = "この時間は予約済みです";
         return;
       }
 

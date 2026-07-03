@@ -11,6 +11,7 @@ Browser-based booking board for post-exhibition web meetings.
 - Daily slots: 10:00, 11:00, 13:00, 14:30, 16:00
 - Staff: 島村, 小林, 高木, 見目, 藤之原, 奥田
 - Storage: Firebase Firestore, collection `reservations`
+- Booked slots remain visible as unavailable and cannot be selected again
 - Saved fields: selected booking date/time, staff, memo date/time, and meeting memo only
 
 ## Firebase / Firestore
