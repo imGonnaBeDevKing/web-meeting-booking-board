@@ -128,12 +128,13 @@
 
     .workspace {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 400px;
+      grid-template-columns: minmax(720px, 1080px) 400px;
       grid-template-areas:
         "hero hero"
         "calendar sidebar";
       gap: 16px;
       align-items: start;
+      justify-content: center;
       min-width: 0;
     }
 
@@ -660,6 +661,7 @@
         grid-template-areas:
           "hero hero"
           "calendar sidebar";
+        justify-content: stretch;
       }
     }
 
