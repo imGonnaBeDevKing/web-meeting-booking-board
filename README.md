@@ -13,6 +13,7 @@ Browser-based booking board for post-exhibition web meetings.
 - Storage: Firebase Firestore, collection `reservations`
 - Booked slots remain visible as unavailable and cannot be selected again
 - Tap a booked slot to review the saved memo in read-only mode
+- Desktop calendar cards show per-time availability chips for quick scanning
 - Social preview image for Teams/LINE: `assets/og-image.jpg`
 - Saved fields: selected booking date/time, staff, memo date/time, and meeting memo only
 

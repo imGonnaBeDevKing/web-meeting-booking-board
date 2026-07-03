@@ -298,7 +298,7 @@
 
     .visual-band {
       position: relative;
-      min-height: 220px;
+      min-height: 164px;
       background: #e8edf2;
       overflow: hidden;
     }
@@ -306,7 +306,7 @@
     .visual-band img {
       width: 100%;
       height: 100%;
-      min-height: 220px;
+      min-height: 164px;
       object-fit: cover;
       object-position: center;
     }
@@ -379,6 +379,35 @@
       font-size: 13px;
     }
 
+    .availability-legend {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      border: 1px solid rgba(0, 113, 227, 0.18);
+      background: rgba(231, 241, 255, 0.9);
+    }
+
+    .legend-dot.is-booked {
+      border-color: rgba(17, 24, 39, 0.08);
+      background: rgba(241, 243, 245, 0.95);
+    }
+
     .weekday-grid,
     .calendar-grid {
       display: grid;
@@ -395,15 +424,15 @@
     }
 
     .day-blank {
-      min-height: 76px;
+      min-height: 128px;
     }
 
     .day-card,
     .day-button {
       display: grid;
-      align-content: space-between;
+      align-content: start;
       gap: 8px;
-      min-height: 76px;
+      min-height: 128px;
       padding: 10px;
       border: 1px solid rgba(17, 24, 39, 0.08);
       border-radius: 7px;
@@ -433,7 +462,7 @@
     }
 
     .day-card.is-weekend {
-      min-height: 56px;
+      min-height: 96px;
       align-self: center;
       padding: 8px;
       border-style: dashed;
@@ -476,10 +505,36 @@
       font-weight: 800;
     }
 
+    .day-slot-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px;
+    }
+
+    .day-slot-chip {
+      min-width: 0;
+      padding: 4px 3px;
+      border: 1px solid rgba(0, 113, 227, 0.18);
+      border-radius: 5px;
+      background: rgba(231, 241, 255, 0.74);
+      color: #075ca8;
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .day-slot-chip.is-booked {
+      border-color: rgba(17, 24, 39, 0.08);
+      background: rgba(241, 243, 245, 0.88);
+      color: #8a8a8e;
+    }
+
     .slots-panel {
-      margin-top: 18px;
-      padding-top: 16px;
-      border-top: 1px solid var(--line);
+      margin: 0 0 14px;
+      padding: 0 0 14px;
+      border-bottom: 1px solid var(--line);
     }
 
     .slots-head {
@@ -509,8 +564,8 @@
     }
 
     .slot-button {
-      min-height: 84px;
-      padding: 12px 10px;
+      min-height: 62px;
+      padding: 10px;
       border: 1px solid rgba(17, 24, 39, 0.08);
       border-radius: 7px;
       background: rgba(255, 255, 255, 0.82);
@@ -557,8 +612,8 @@
 
     .slot-button strong {
       display: block;
-      margin-bottom: 8px;
-      font-size: 19px;
+      margin-bottom: 6px;
+      font-size: 18px;
       line-height: 1;
     }
 
@@ -727,6 +782,11 @@
         font-size: 34px;
       }
 
+      .visual-band,
+      .visual-band img {
+        min-height: 220px;
+      }
+
       .visual-overlay {
         align-items: flex-start;
         flex-direction: column;
@@ -757,8 +817,22 @@
         min-height: 50px;
       }
 
+      .day-slot-list {
+        display: none;
+      }
+
       .day-button {
         padding: 8px;
+      }
+
+      .slots-panel {
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+      }
+
+      .slot-button {
+        min-height: 84px;
+        padding: 12px 10px;
       }
 
       .slot-grid {
@@ -885,9 +959,21 @@
           <div class="calendar-head">
             <div>
               <h2>2026年7月</h2>
-              <p id="calendarCaption">予約対象22日、全110枠。土日・祝日は表示のみ。</p>
+              <p id="calendarCaption">予約対象22日、全110枠。各日の空き時間を表示。</p>
+              <div class="availability-legend" aria-hidden="true">
+                <span class="legend-item"><span class="legend-dot"></span>空き</span>
+                <span class="legend-item"><span class="legend-dot is-booked"></span>予約済み</span>
+              </div>
             </div>
             <div class="top-status" id="dayAvailability">空き 5 / 5</div>
+          </div>
+
+          <div class="slots-panel">
+            <div class="slots-head">
+              <h3 id="slotsTitle">7月1日 水曜日</h3>
+              <span id="slotsStatus">島村 / 空き 5</span>
+            </div>
+            <div class="slot-grid" id="slotGrid" aria-label="予約時間"></div>
           </div>
 
           <div class="calendar-grid-wrap">
@@ -901,14 +987,6 @@
               <span>土</span>
             </div>
             <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="2026年7月のカレンダー"></div>
-          </div>
-
-          <div class="slots-panel">
-            <div class="slots-head">
-              <h3 id="slotsTitle">7月1日 水曜日</h3>
-              <span id="slotsStatus">島村 / 空き 5</span>
-            </div>
-            <div class="slot-grid" id="slotGrid" aria-label="予約時間"></div>
           </div>
         </div>
       </section>
@@ -1205,9 +1283,15 @@
         ].filter(Boolean).join(" ");
         button.setAttribute("role", "gridcell");
         button.setAttribute("aria-label", `${day.label} 空き${available}件`);
+        const slotChips = TIMES.map((time) => {
+          const booking = bookingFor(state.staff, day.iso, time);
+          const shortTime = time.replace(":00", "");
+          return `<span class="day-slot-chip ${booking ? "is-booked" : ""}">${shortTime}</span>`;
+        }).join("");
         button.innerHTML = `
           <span class="day-number">${day.day}</span>
           <span class="day-meta"><span>${WEEKDAYS[day.dow]}</span><span>${available}/${TIMES.length}</span></span>
+          <span class="day-slot-list" aria-hidden="true">${slotChips}</span>
         `;
         button.addEventListener("click", () => {
           state.date = day.iso;
